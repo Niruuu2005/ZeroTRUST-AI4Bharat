@@ -19,3 +19,6 @@ models/
 .vscode/settings.json
 coverage/
 *.zip
+.kiro/
+.hypothesis/
+Docs/

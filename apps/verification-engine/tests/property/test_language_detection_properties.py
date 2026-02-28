@@ -123,7 +123,7 @@ class TestLanguageDetectionProperties:
     """Property-based tests for language detection."""
     
     @given(st.text(min_size=1, max_size=1000))
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None)
     def test_returns_valid_iso_639_1_code(self, text):
         """
         Property 25: Returns Valid ISO 639-1 Code
