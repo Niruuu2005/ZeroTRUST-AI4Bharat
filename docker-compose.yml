@@ -1,0 +1,111 @@
+version: "3.9"
+
+services:
+  # ── Data Layer ────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: zt-postgres
+    environment:
+      POSTGRES_DB: zerotrust_dev
+      POSTGRES_USER: zerotrust
+      POSTGRES_PASSWORD: devpassword
+    ports: ["5432:5432"]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zerotrust"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: zt-redis
+    ports: ["6379:6379"]
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── Application Services ─────────────────────────────────────
+  api-gateway:
+    build:
+      context: apps/api-gateway
+      target: development
+    container_name: zt-api
+    command: npm run dev
+    ports: ["3000:3000"]
+    volumes:
+      - ./apps/api-gateway/src:/app/src
+      - ./apps/api-gateway/prisma:/app/prisma
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      DATABASE_URL: postgresql://zerotrust:devpassword@postgres:5432/zerotrust_dev
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-secret-change-in-prod-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      JWT_ACCESS_EXPIRY: 15m
+      JWT_REFRESH_EXPIRY: 7d
+      VERIFICATION_ENGINE_URL: http://verification-engine:8000
+      MEDIA_ENGINE_URL: http://media-analysis:8001
+      RATE_LIMIT_PUBLIC: "20"
+      AWS_REGION: us-east-1
+    env_file: [.env.local]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  verification-engine:
+    build:
+      context: apps/verification-engine
+    container_name: zt-verification
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    ports: ["8000:8000"]
+    volumes:
+      - ./apps/verification-engine/src:/app/src
+    environment:
+      ENVIRONMENT: development
+      PORT: "8000"
+      DATABASE_URL: postgresql://zerotrust:devpassword@postgres:5432/zerotrust_dev
+      REDIS_URL: redis://redis:6379
+      BEDROCK_REGION: us-east-1
+      MAX_AGENT_TIMEOUT: "10"
+      MAX_SOURCES_PER_AGENT: "20"
+    env_file: [.env.local]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  media-analysis:
+    build:
+      context: apps/media-analysis
+      dockerfile: Dockerfile.cpu
+    container_name: zt-media
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8001 --reload
+    ports: ["8001:8001"]
+    volumes:
+      - ./apps/media-analysis/src:/app/src
+      - ./models:/app/models
+    environment:
+      ENVIRONMENT: development
+      PORT: "8001"
+      MODEL_DIR: /app/models
+      REDIS_URL: redis://redis:6379
+      AWS_REGION: us-east-1
+    env_file: [.env.local]
+    depends_on: [redis]
+
+  web-portal:
+    build:
+      context: apps/web-portal
+    container_name: zt-web
+    command: npm run dev -- --host 0.0.0.0
+    ports: ["5173:5173"]
+    volumes:
+      - ./apps/web-portal/src:/app/src
+    environment:
+      VITE_API_BASE_URL: http://localhost:3000
+
+volumes:
+  postgres_data:

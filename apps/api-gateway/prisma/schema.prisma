@@ -1,0 +1,78 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String         @id @default(uuid())
+  email             String         @unique
+  emailVerified     Boolean        @default(false)
+  passwordHash      String?
+  oauthProvider     String?
+  subscriptionTier  String         @default("free")
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  verifications     Verification[]
+  apiKeys           ApiKey[]
+
+  @@map("users")
+}
+
+model Verification {
+  id               String   @id @default(uuid())
+  claimHash        String
+  claimText        String
+  claimType        String
+  credibilityScore Int
+  category         String
+  confidence       String
+  sourcesConsulted Int      @default(0)
+  agentConsensus   String?
+  evidenceSummary  Json     @default("{}")
+  sources          Json     @default("[]")
+  agentVerdicts    Json     @default("{}")
+  limitations      Json     @default("[]")
+  recommendation   String?
+  processingTime   Float?
+  cached           Boolean  @default(false)
+  sourcePlatform   String?
+  userId           String?
+  user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
+
+  @@index([claimHash])
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("verifications")
+}
+
+model Source {
+  id               String   @id @default(uuid())
+  domain           String   @unique
+  name             String?
+  credibilityTier  String?
+  credibilityScore Float?
+  category         String?
+  createdAt        DateTime @default(now())
+
+  @@map("sources")
+}
+
+model ApiKey {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keyHash   String   @unique
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("api_keys")
+}

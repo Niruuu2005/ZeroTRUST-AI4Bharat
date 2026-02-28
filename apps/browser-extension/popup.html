@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ZeroTRUST Verify</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>ZeroTRUST Verify</h1>
+    <p class="subtitle">Paste a claim (text or URL) to verify</p>
+    <textarea id="claim" placeholder="Enter claim text or URL (min 10 characters)..." rows="4"></textarea>
+    <div class="row">
+      <select id="type">
+        <option value="text">Text</option>
+        <option value="url">URL</option>
+      </select>
+      <button id="verify" type="button">Verify</button>
+    </div>
+    <div id="status" class="status" aria-live="polite"></div>
+    <div id="result" class="result hidden">
+      <div class="score-row">
+        <span class="label">Score</span>
+        <span id="score" class="score">—</span>
+      </div>
+      <div class="category-row">
+        <span class="label">Verdict</span>
+        <span id="category" class="category">—</span>
+      </div>
+      <p id="recommendation" class="recommendation"></p>
+      <p id="cached" class="cached hidden">(from cache)</p>
+    </div>
+    <div class="options-link">
+      <a href="#" id="settings">API URL settings</a>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "ZeroTRUST Verify",
+  "version": "1.0.0",
+  "description": "Verify claims with ZeroTRUST — paste text or URL and get a credibility score.",
+  "permissions": ["storage"],
+  "host_permissions": ["http://localhost:3000/*", "https://*/*"],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

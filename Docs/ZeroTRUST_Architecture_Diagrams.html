@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ZeroTRUST – Architecture Diagrams</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --border: #2a2d3e;
+    --accent: #6c63ff;
+    --accent2: #00d4aa;
+    --accent3: #ff6b6b;
+    --accent4: #ffd93d;
+    --text: #e2e8f0;
+    --sub: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 32px 24px;
+    line-height: 1.6;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  header .badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+  }
+  header h1 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 40%, var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p {
+    color: var(--sub);
+    font-size: 1rem;
+    margin-top: 8px;
+  }
+
+  .toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 48px;
+  }
+  .toc a {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    text-decoration: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .toc a:hover { border-color: var(--accent); color: var(--accent2); }
+
+  .diagram-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 28px;
+    margin-bottom: 40px;
+  }
+  .diagram-section h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .diagram-section .icon {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+  }
+  .diagram-section p.desc {
+    color: var(--sub);
+    font-size: 0.88rem;
+    margin-bottom: 24px;
+    padding-left: 42px;
+  }
+  .mermaid {
+    background: #12151f;
+    border-radius: 10px;
+    padding: 24px;
+    overflow-x: auto;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--sub);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--sub);
+    font-size: 12px;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">AWS AI for Bharat Hackathon</div>
+  <h1>ZeroTRUST Architecture Diagrams</h1>
+  <p>Team ZeroTrust · Team Leader: Pratik Jagdale · AI-Powered Misinformation Detection</p>
+</header>
+
+<div class="toc">
+  <a href="#d1">① System Architecture</a>
+  <a href="#d2">② Multi-Agent Engine</a>
+  <a href="#d3">③ Verification Sequence</a>
+  <a href="#d4">④ Data Flow</a>
+  <a href="#d5">⑤ AWS Infra (VPC)</a>
+  <a href="#d6">⑥ Caching Strategy</a>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────── -->
+<!-- DIAGRAM 1: Full System Architecture                  -->
+<!-- ────────────────────────────────────────────────────── -->
+<div class="diagram-section" id="d1">
+  <h2><span class="icon">🏗️</span>Diagram 1 – Full System Architecture</h2>
+  <p class="desc">End-to-end view of all layers: clients → edge → API → compute → data → external sources → observability.</p>
+  <div class="mermaid">
+flowchart TB
+    classDef client     fill:#1e293b,stroke:#6c63ff,color:#e2e8f0,stroke-width:2px
+    classDef edge       fill:#1e293b,stroke:#00d4aa,color:#e2e8f0,stroke-width:2px
+    classDef compute    fill:#1e293b,stroke:#ffd93d,color:#e2e8f0,stroke-width:2px
+    classDef ai         fill:#1e293b,stroke:#a78bfa,color:#e2e8f0,stroke-width:2px
+    classDef data       fill:#1e293b,stroke:#34d399,color:#e2e8f0,stroke-width:2px
+    classDef media      fill:#1e293b,stroke:#f472b6,color:#e2e8f0,stroke-width:2px
+    classDef external   fill:#1e293b,stroke:#fb923c,color:#e2e8f0,stroke-width:2px
+    classDef observe    fill:#1e293b,stroke:#60a5fa,color:#e2e8f0,stroke-width:2px
+
+    subgraph CL["🖥️  CLIENT LAYER"]
+        W["🌐 Web Portal
+React.js"]
+        E["🧩 Browser Extension
+Chrome / Edge"]
+        M["📱 Mobile App
+React Native"]
+        D["👩‍💻 Developers
+Public API"]
+    end
+
+    subgraph ED["⚡  EDGE  (Global CDN + WAF)"]
+        CF["☁️ CloudFront CDN
+Edge Cache · SSL"]
+        WAF["🛡️ AWS WAF
+DDoS · Rate Limit"]
+        R53["🌐 Route 53
+DNS Health-check"]
+    end
+
+    subgraph API["🔌  API LAYER"]
+        APIGW["🔀 AWS API Gateway
+RESTful API Management
+Auth · Rate-Limit · Routing"]
+    end
+
+    subgraph COMP["🚀  COMPUTE  (ECS Fargate)"]
+        BFF["⚙️ API Service
+Node.js / Express
+JWT · Validation · Cache-check"]
+        VE["🤖 Verification Engine
+Python / FastAPI
+LangChain + LangGraph"]
+        MA["🎬 Media Analysis
+Python (TF / PyTorch)
+Deepfake · OCR · Forensics"]
+        LMB["⚡ AWS Lambda
+S3 triggers · Async tasks
+Scheduled jobs"]
+    end
+
+    subgraph AIML["🧠  AI / LLM ORCHESTRATION"]
+        BDR["🟠 AWS Bedrock
+Claude 3.5 · Llama · Mistral
+Multi-agent orchestration"]
+    end
+
+    subgraph DATASVC["💾  DATA  LAYER"]
+        REDIS["⚡ ElastiCache Redis
+Tier-1 Cache (1 hr)"]
+        DDB["📦 DynamoDB
+Tier-2 Cache (24 hr)
+Fast key-value queries"]
+        S3["🪣 S3
+Media · Reports · Archives"]
+        NEP["🕸️ Neptune
+Graph DB
+Claims–Entities–Sources"]
+        PG["🐘 PostgreSQL (RDS)
+Users · Verifications · Trends"]
+        VEC["🔢 Vector DB
+Embeddings · Similarity"]
+    end
+
+    subgraph MAWS["🔬  AWS MEDIA SERVICES"]
+        TEX["📄 Textract
+OCR – image text"]
+        TRN["🎙️ Transcribe
+Speech-to-text"]
+        REK["👁️ Rekognition
+Image/Video analysis"]
+    end
+
+    subgraph EXT["🌍  EXTERNAL DATA SOURCES"]
+        SRC1["🔍 Search
+Google · Bing"]
+        SRC2["📰 News
+AP · Reuters · BBC"]
+        SRC3["✅ Fact-Check
+Snopes · PolitiFact · AltNews"]
+        SRC4["🔬 Scientific
+PubMed · WHO · arXiv"]
+        SRC5["📣 Social
+Twitter/X · Reddit"]
+    end
+
+    subgraph OBS["📊  OBSERVABILITY"]
+        CW["📈 CloudWatch
+Logs · Metrics · Alarms · Tracing"]
+    end
+
+    W & E & M & D --> CF --> WAF --> R53 --> APIGW
+    APIGW --> BFF
+    BFF --> REDIS
+    BFF --> DDB
+    BFF --> PG
+    BFF --> S3
+    BFF --> LMB
+    BFF --> VE
+    BFF --> MA
+
+    VE --> BDR
+    VE --> REDIS
+    VE --> DDB
+    VE --> PG
+    VE --> NEP
+    VE --> VEC
+    VE --> SRC1 & SRC2 & SRC3 & SRC4 & SRC5
+
+    MA --> S3
+    MA --> TEX & TRN & REK
+    MA --> REDIS
+    MA --> PG
+
+    LMB --> S3
+    LMB --> DDB
+
+    COMP --> CW
+    AIML --> CW
+    DATASVC --> CW
+    MAWS --> CW
+    ED --> CW
+
+    class W,E,M,D client
+    class CF,WAF,R53 edge
+    class BFF,VE,MA,LMB compute
+    class BDR ai
+    class REDIS,DDB,S3,NEP,PG,VEC data
+    class TEX,TRN,REK media
+    class SRC1,SRC2,SRC3,SRC4,SRC5 external
+    class CW observe
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#6c63ff"></div> Client Layer</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#00d4aa"></div> Edge / CDN</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ffd93d"></div> Compute (ECS Fargate)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div> AI / Bedrock</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#34d399"></div> Data Layer</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f472b6"></div> AWS Media Services</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fb923c"></div> External Sources</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div> Observability</div>
+  </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────── -->
+<!-- DIAGRAM 2: Multi-Agent Engine                        -->
+<!-- ────────────────────────────────────────────────────── -->
+<div class="diagram-section" id="d2">
+  <h2><span class="icon">🤖</span>Diagram 2 – Multi-Agent Engine (6 Parallel Agents)</h2>
+  <p class="desc">Manager agent orchestrates 6 specialist agents in parallel. Each independently queries different source categories. Evidence is aggregated into a final credibility score.</p>
+  <div class="mermaid">
+flowchart TB
+    classDef input    fill:#1e3a5f,stroke:#60a5fa,color:#e2e8f0,stroke-width:2px
+    classDef manager  fill:#3b1f6b,stroke:#a78bfa,color:#e2e8f0,stroke-width:2px
+    classDef agent    fill:#1e3f2f,stroke:#34d399,color:#e2e8f0,stroke-width:2px
+    classDef source   fill:#2d2010,stroke:#fb923c,color:#e2e8f0,stroke-width:2px
+    classDef engine   fill:#1f2d3a,stroke:#00d4aa,color:#e2e8f0,stroke-width:2px
+    classDef output   fill:#2d1f1f,stroke:#ff6b6b,color:#e2e8f0,stroke-width:2px
+
+    IN["📥 User Claim Input
+Text · URL · Image · Video · Audio"]
+
+    subgraph NORM["Normalization Layer"]
+        N1["🔤 Text Normalization"]
+        N2["🏷️ Metadata Extraction"]
+        N3["🌐 Language Detection"]
+    end
+
+    MGR["🧠 MANAGER AGENT
+(AWS Bedrock — Claude 3.5)
+① Analyze Claim
+② Select Agents
+③ Aggregate Results
+④ Generate Verdict"]
+
+    subgraph AGENTS["6 SPECIALIST AGENTS (Running in Parallel)"]
+        A1["🔍 Research Agent
+Google Scholar · Wikipedia
+Academic DBs"]
+        A2["📰 News Agent
+NewsAPI · AP · Reuters
+BBC · CNN · Fact-Checkers"]
+        A3["🔬 Scientific Agent
+PubMed · CDC · WHO
+arXiv · CrossRef"]
+        A4["📣 Social Media Agent
+Twitter/X · Reddit
+Facebook CrowdTangle"]
+        A5["😤 Sentiment Agent
+Bias Detection
+Propaganda Patterns
+Manipulation Tactics"]
+        A6["🕷️ Web Scraper Agent
+Content Extraction
+Context Verification
+Wayback Machine"]
+    end
+
+    subgraph SOURCES["External Sources (30–60 per claim)"]
+        S1["🔍 Google · Bing"]
+        S2["✅ Snopes · PolitiFact
+AltNews · FactCheck.org"]
+        S3["📚 PubMed · arXiv
+WHO · CDC"]
+        S4["🐦 Twitter/X · Reddit"]
+        S5["🌐 Live Web Pages
+Archived Pages"]
+        S6["📡 AP · Reuters · BBC"]
+    end
+
+    subgraph ENGINE["Credibility & Reporting Engine"]
+        CE["⚖️ Credibility Engine
+Weighted Evidence Aggregation
+Source Reliability Tiers
+Confidence Calculation"]
+        RF["📋 Report Formatter
+Evidence Trails · Source Citations
+Limitations · Reasoning"]
+        TF["📊 Trending Fake News
+Aggregator / Analytics"]
+    end
+
+    OUT["📤 Final Output
+🎯 Scrutiny Score 0–100
+📌 Verdict Label
+📚 Evidence Breakdown
+🔗 Source Citations
+⚠️ Limitations"]
+
+    IN --> N1 & N2 & N3
+    N1 & N2 & N3 --> MGR
+
+    MGR --> A1 & A2 & A3 & A4 & A5 & A6
+
+    A1 --> S1
+    A2 --> S2 & S6
+    A3 --> S3
+    A4 --> S4
+    A5 --> S1 & S4
+    A6 --> S5
+
+    A1 & A2 & A3 & A4 & A5 & A6 --> CE
+    CE --> RF
+    RF --> TF
+    RF --> OUT
+
+    class IN input
+    class N1,N2,N3 input
+    class MGR manager
+    class A1,A2,A3,A4,A5,A6 agent
+    class S1,S2,S3,S4,S5,S6 source
+    class CE,RF,TF engine
+    class OUT output
+  </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────── -->
+<!-- DIAGRAM 3: Verification Sequence                     -->
+<!-- ────────────────────────────────────────────────────── -->
+<div class="diagram-section" id="d3">
+  <h2><span class="icon">⏱️</span>Diagram 3 – End-to-End Verification Sequence</h2>
+  <p class="desc">Step-by-step request lifecycle from user submission to result delivery, with cache-hit fast path shown.</p>
+  <div class="mermaid">
+sequenceDiagram
+    participant U  as 👤 User
+    participant CF as ☁️ CloudFront CDN
+    participant GW as 🔀 API Gateway
+    participant API as ⚙️ API Service (Node.js)
+    participant CACHE as ⚡ Redis Cache
+    participant VE as 🤖 Verification Engine
+    participant BDR as 🟠 AWS Bedrock
+    participant AGT as 🔍 Specialist Agents (×6)
+    participant EXT as 🌍 External Sources
+    participant CE as ⚖️ Credibility Engine
+    participant DB as 🐘 PostgreSQL + DynamoDB
+
+    U->>CF: Submit claim (text/URL/media)
+    CF->>GW: Forward request (WAF checked)
+    GW->>API: Route to API Service (JWT validated)
+    API->>CACHE: Check Tier-1 cache (Redis)
+
+    alt ✅ Cache HIT (90% of requests)
+        CACHE-->>API: Return cached result
+        API-->>U: Instant response (<500ms)
+    else ❌ Cache MISS – Full verification
+        API->>VE: Send claim for verification
+        VE->>BDR: Analyze claim (Claude 3.5)
+        BDR-->>VE: Claim type + entity extraction
+        VE->>AGT: Dispatch 6 agents in parallel
+        AGT->>EXT: Query 30-60 sources simultaneously
+        EXT-->>AGT: Evidence returned per agent
+        AGT-->>VE: Agent verdicts + confidence scores
+        VE->>CE: Aggregate evidence + calculate score
+        CE-->>VE: Credibility score (0-100) + category
+        VE-->>API: Full verification report
+        API->>CACHE: Store in Redis (TTL 1hr)
+        API->>DB: Persist to PostgreSQL + DynamoDB
+        API-->>U: Verification result (<5 sec)
+    end
+
+    Note over AGT,EXT: Parallel execution across:<br/>Research · News · Scientific<br/>Social Media · Sentiment · Scraper
+  </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────── -->
+<!-- DIAGRAM 4: Media Verification Flow                   -->
+<!-- ────────────────────────────────────────────────────── -->
+<div class="diagram-section" id="d4">
+  <h2><span class="icon">🎬</span>Diagram 4 – Media Verification Data Flow (Image / Video / Audio)</h2>
+  <p class="desc">Special pipeline for media inputs: upload to S3 → AWS media services extract signals → deepfake engine analyses → merged with text verification.</p>
+  <div class="mermaid">
+flowchart LR
+    classDef input   fill:#1e3a5f,stroke:#60a5fa,color:#e2e8f0,stroke-width:2px
+    classDef aws     fill:#2d1f0e,stroke:#f97316,color:#e2e8f0,stroke-width:2px
+    classDef model   fill:#1e3f2f,stroke:#34d399,color:#e2e8f0,stroke-width:2px
+    classDef store   fill:#1f2d3a,stroke:#00d4aa,color:#e2e8f0,stroke-width:2px
+    classDef output  fill:#2d1f1f,stroke:#ff6b6b,color:#e2e8f0,stroke-width:2px
+
+    IMG["🖼️ Image Input"]
+    VID["🎬 Video Input"]
+    AUD["🎙️ Audio Input"]
+
+    subgraph UPLOAD["Upload Phase"]
+        S3U["🪣 S3 Upload
+(Pre-signed URL)"]
+        LMB["⚡ Lambda Trigger
+(S3 Event)"]
+    end
+
+    subgraph AWSSVC["AWS Media Intelligence"]
+        TEX["📄 Textract
+Extract embedded text"]
+        TRN["🎙️ Transcribe
+Speech → Text"]
+        REK["👁️ Rekognition
+Faces · Objects · Labels"]
+    end
+
+    subgraph FORENSICS["Forensic Analysis Engine (ECS)"]
+        DF["🔍 Deepfake Detector
+XceptionNet + EfficientNet"]
+        RIS["🔄 Reverse Image Search
+TinEye · Google Vision"]
+        META["📋 Metadata Analyser
+EXIF · Timestamps"]
+        FREQ["〰️ Frequency Analysis
+FFT artifact detection"]
+        SYNC["🔊 A/V Sync Check
+Audio-video alignment"]
+    end
+
+    subgraph MERGE["Result Merging"]
+        MRGR["🔀 Evidence Merger
+Combine media + text signals"]
+        CRED["⚖️ Unified Credibility Score"]
+    end
+
+    S3OUT["🗂️ S3 Result Store
+Analysis reports"]
+    FINAL["📤 Final Verification
+Report to User"]
+
+    IMG & VID & AUD --> S3U --> LMB
+
+    LMB --> TEX & TRN & REK
+
+    LMB --> DF & RIS & META & FREQ
+
+    VID --> SYNC
+
+    TEX & TRN & REK --> MRGR
+    DF & RIS & META & FREQ & SYNC --> MRGR
+
+    MRGR --> CRED
+    CRED --> S3OUT
+    CRED --> FINAL
+
+    class IMG,VID,AUD input
+    class S3U,LMB,TEX,TRN,REK aws
+    class DF,RIS,META,FREQ,SYNC model
+    class S3OUT store
+    class MRGR,CRED,FINAL output
+  </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────── -->
+<!-- DIAGRAM 5: AWS VPC / Infrastructure                  -->
+<!-- ────────────────────────────────────────────────────── -->
+<div class="diagram-section" id="d5">
+  <h2><span class="icon">☁️</span>Diagram 5 – AWS Infrastructure &amp; VPC Deployment</h2>
+  <p class="desc">Network topology showing VPC, subnet zones, security boundaries, multi-AZ deployment, and managed services.</p>
+  <div class="mermaid">
+flowchart TB
+    classDef public  fill:#1a2e1a,stroke:#4ade80,color:#e2e8f0,stroke-width:2px
+    classDef private fill:#1a1f2e,stroke:#60a5fa,color:#e2e8f0,stroke-width:2px
+    classDef data    fill:#2e1a2e,stroke:#a78bfa,color:#e2e8f0,stroke-width:2px
+    classDef managed fill:#2e1f0e,stroke:#fb923c,color:#e2e8f0,stroke-width:2px
+    classDef global  fill:#0f1117,stroke:#00d4aa,color:#e2e8f0,stroke-width:2px
+
+    INET["🌐 Internet"]
+
+    subgraph GLOBAL["AWS Global Edge"]
+        CF2["☁️ CloudFront CDN
+200+ Edge Locations"]
+        WAF2["🛡️ AWS WAF
+DDoS · OWASP rules"]
+        R532["🌐 Route 53
+Latency-based routing"]
+    end
+
+    subgraph VPC["🏢  AWS VPC  (10.0.0.0/16) — us-east-1"]
+
+        subgraph PUBA["Public Subnet A
+10.0.1.0/24 — AZ-a"]
+            ALB["⚖️ Application Load Balancer
+SSL · Health-checks"]
+            NATA["🔀 NAT Gateway A"]
+        end
+
+        subgraph PUBB["Public Subnet B
+10.0.2.0/24 — AZ-b"]
+            NATB["🔀 NAT Gateway B"]
+        end
+
+        subgraph PRIVA["Private Subnet A
+10.0.11.0/24 — AZ-a"]
+            ECS1["🐳 ECS Task: API Service"]
+            ECS2["🐳 ECS Task: Verification Engine"]
+            ECS3["🐳 ECS Task: Media Analysis (GPU)"]
+        end
+
+        subgraph PRIVB["Private Subnet B
+10.0.12.0/24 — AZ-b"]
+            ECS4["🐳 ECS Task: API Service"]
+            ECS5["🐳 ECS Task: Verification Engine"]
+        end
+
+        subgraph DATAA["Data Subnet A
+10.0.21.0/24 — AZ-a"]
+            RDS1["🐘 RDS PostgreSQL
+Primary"]
+            REDIS1["⚡ ElastiCache Redis
+Node 1"]
+        end
+
+        subgraph DATAB["Data Subnet B
+10.0.22.0/24 — AZ-b"]
+            RDS2["🐘 RDS PostgreSQL
+Standby (Auto-failover)"]
+            REDIS2["⚡ ElastiCache Redis
+Node 2"]
+        end
+    end
+
+    subgraph MANAGED["AWS Managed Services (outside VPC)"]
+        BDR2["🟠 Bedrock
+LLM APIs"]
+        DDB2["📦 DynamoDB
+Global Tables"]
+        S32["🪣 S3
+Multi-region"]
+        NEP2["🕸️ Neptune
+Graph DB"]
+        LMB2["⚡ Lambda
+Serverless"]
+        CW2["📈 CloudWatch
+Observability"]
+        TEX2["📄 Textract · Transcribe
+Rekognition"]
+    end
+
+    INET --> CF2 --> WAF2 --> R532 --> ALB
+    ALB --> ECS1 & ECS4
+    ECS1 & ECS2 & ECS3 & ECS4 & ECS5 --> NATA & NATB
+    NATA & NATB --> BDR2 & DDB2 & S32 & NEP2 & LMB2 & TEX2
+
+    ECS1 & ECS4 --> ECS2 & ECS5
+    ECS2 & ECS3 & ECS5 --> RDS1 & REDIS1 & REDIS2
+    RDS1 <-->|Replication| RDS2
+    REDIS1 <-->|Sync| REDIS2
+
+    ECS1 & ECS2 & ECS3 & ECS4 & ECS5 --> CW2
+    ALB --> CW2
+
+    class CF2,WAF2,R532 global
+    class ALB,NATA,NATB public
+    class ECS1,ECS2,ECS3,ECS4,ECS5 private
+    class RDS1,RDS2,REDIS1,REDIS2 data
+    class BDR2,DDB2,S32,NEP2,LMB2,CW2,TEX2 managed
+  </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────── -->
+<!-- DIAGRAM 6: 3-Tier Caching Strategy                   -->
+<!-- ────────────────────────────────────────────────────── -->
+<div class="diagram-section" id="d6">
+  <h2><span class="icon">⚡</span>Diagram 6 – 3-Tier Caching Strategy</h2>
+  <p class="desc">90% cache hit rate achieved through layered caching: Redis hot cache → DynamoDB warm cache → CloudFront edge cache → PostgreSQL source of truth.</p>
+  <div class="mermaid">
+flowchart TD
+    classDef req    fill:#1e3a5f,stroke:#60a5fa,color:#e2e8f0,stroke-width:2px
+    classDef hit    fill:#1e3f2f,stroke:#4ade80,color:#e2e8f0,stroke-width:2px
+    classDef miss   fill:#3f1e1e,stroke:#f87171,color:#e2e8f0,stroke-width:2px
+    classDef tier   fill:#2d1f3f,stroke:#a78bfa,color:#e2e8f0,stroke-width:2px
+    classDef db     fill:#1f2d1f,stroke:#34d399,color:#e2e8f0,stroke-width:2px
+    classDef store  fill:#2e200e,stroke:#fb923c,color:#e2e8f0,stroke-width:2px
+
+    REQ["📥 Incoming Verification Request
+(SHA-256 hash of claim as cache key)"]
+
+    T1{"⚡ TIER 1
+Redis (ElastiCache)
+TTL: 1 hour
+Latency: <5ms
+Coverage: ~60% of requests"}
+    HIT1["✅ Cache HIT
+Return instantly
+<500ms total response"]
+    MISS1["❌ Cache MISS
+↓ Check next tier"]
+
+    T2{"📦 TIER 2
+DynamoDB
+TTL: 24 hours
+Latency: <20ms
+Coverage: ~25% of requests"}
+    HIT2["✅ Cache HIT
+Load into Redis (L1 promote)
+Return result"]
+    MISS2["❌ Cache MISS
+↓ Check next tier"]
+
+    T3{"☁️ TIER 3
+CloudFront Edge Cache
+TTL: 30 days (popular claims)
+Latency: <50ms (nearest edge)
+Coverage: ~5% of requests"}
+    HIT3["✅ Cache HIT
+Return from edge
+Fill Redis + DynamoDB"]
+    MISS3["❌ Cache MISS (~10%)
+↓ Full verification needed"]
+
+    FULL["🤖 Full Verification Pipeline
+6 Agents · 30-60 Sources
+~3-5 seconds"]
+    STORE["💾 Write to All Cache Tiers
+Redis + DynamoDB + CloudFront
++ PostgreSQL (permanent)"]
+    RESP["📤 Response to User
+Credibility Score + Evidence"]
+
+    PROMOTE["🔼 L2→L1 Cache Promotion
+Populate Redis from DynamoDB"]
+
+    REQ --> T1
+    T1 -- HIT --> HIT1
+    T1 -- MISS --> MISS1 --> T2
+    T2 -- HIT --> HIT2 --> PROMOTE --> RESP
+    T2 -- MISS --> MISS2 --> T3
+    T3 -- HIT --> HIT3
+    T3 -- MISS --> MISS3 --> FULL
+    FULL --> STORE --> RESP
+    HIT1 --> RESP
+    HIT3 --> RESP
+
+    class REQ req
+    class HIT1,HIT2,HIT3 hit
+    class MISS1,MISS2,MISS3 miss
+    class T1,T2,T3 tier
+    class FULL,STORE db
+    class PROMOTE,RESP store
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div> Cache HIT path (fast)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f87171"></div> Cache MISS (proceed deeper)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div> Cache Tier check node</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#34d399"></div> Full verification / storage</div>
+  </div>
+</div>
+
+<footer>
+  ZeroTRUST · AWS AI for Bharat Hackathon · Team Leader: Pratik Jagdale<br/>
+  "Building the immune system for India's information ecosystem 🇮🇳"
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1e293b',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#6c63ff',
+      lineColor: '#94a3b8',
+      secondaryColor: '#1a1d27',
+      tertiaryColor: '#0f1117',
+      background: '#0f1117',
+      mainBkg: '#1a1d27',
+      nodeBorder: '#2a2d3e',
+      clusterBkg: '#12151f',
+      clusterBorder: '#2a2d3e',
+      titleColor: '#e2e8f0',
+      edgeLabelBackground: '#1a1d27',
+      sequenceNumberColor: '#0f1117'
+    },
+    flowchart: { htmlLabels: true, curve: 'basis' },
+    sequence: { actorFontFamily: 'Segoe UI, sans-serif', messageFontFamily: 'Segoe UI, sans-serif', useMaxWidth: true },
+    fontFamily: 'Segoe UI, system-ui, sans-serif'
+  });
+</script>
+</body>
+</html>
