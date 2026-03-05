@@ -35,37 +35,51 @@ class CredibilityScorer:
         """
         Calculate credibility score using weighted formula.
         
-        Args:
-            agent_results: List of agent result dictionaries with verdict and confidence
-            sources: List of deduplicated sources with credibility_tier, credibility_score, and stance
-            evidence_summary: Dictionary with supporting/contradicting/neutral counts
-        
-        Returns:
-            Tuple of (score: int, category: str, confidence: str)
+        When an official fact-check verdict exists (from FactCheckAgent / Google Fact Check API),
+        it gets a strong anchor weight of 60% — outweighing inferred signals.
+        Otherwise: Credibility = (Evidence Quality × 0.4) + (Consensus × 0.3) + (Reliability × 0.3)
         """
-        # Calculate three components (Requirements 4.1, 4.2, 4.3, 4.4)
-        evidence_quality = self._calculate_evidence_quality(sources)
-        agent_consensus = self._calculate_agent_consensus(agent_results)
-        source_reliability = self._calculate_source_reliability(sources)
+        # ── Step 1: Check for official fact-check verdict ──────────────
+        official_result = next(
+            (r for r in agent_results
+             if r.get('agent') == 'factcheck' and r.get('is_official_verdict')
+             and r.get('verdict') not in ('insufficient', None)
+             and r.get('official_checks_found', 0) > 0),
+            None
+        )
         
-        # Apply weighted formula (Requirement 4.1)
+        # ── Step 2: Standard components ────────────────────────────────
+        evidence_quality    = self._calculate_evidence_quality(sources)
+        agent_consensus     = self._calculate_agent_consensus(agent_results)
+        source_reliability  = self._calculate_source_reliability(sources)
+        
         raw_score = (
-            (evidence_quality * 0.4) +
-            (agent_consensus * 0.3) +
+            (evidence_quality  * 0.4) +
+            (agent_consensus   * 0.3) +
             (source_reliability * 0.3)
         )
         
-        # Apply confidence penalty if needed (Requirement 4.10)
-        final_score = self._apply_confidence_penalty(raw_score, agent_results)
+        # ── Step 3: Official verdict anchor (if exists) ────────────────
+        if official_result:
+            # Convert avg_truth_score (0-1) to 0-100 scale
+            official_score = official_result.get('avg_truth_score', 0.5) * 100
+            # Blend: 60% official truth score + 40% inferred pipeline score
+            raw_score = (official_score * 0.60) + (raw_score * 0.40)
+            logger.info(
+                f"Official fact-check anchor applied: official={official_score:.1f}, "
+                f"inferred={raw_score:.1f}, blended={raw_score:.1f}"
+            )
         
-        # Bound to 0-100 and convert to int
+        # ── Step 4: Confidence penalty ─────────────────────────────────
+        final_score = self._apply_confidence_penalty(raw_score, agent_results)
         final_score = max(0, min(100, int(final_score)))
         
-        # Map score to category (Requirements 4.5-4.9)
-        category = self._map_score_to_category(final_score)
-        
-        # Calculate confidence level
+        category   = self._map_score_to_category(final_score)
         confidence = self._calculate_confidence_level(agent_results, sources)
+        
+        # Upgrade confidence when we have an official verdict
+        if official_result and confidence == "Low":
+            confidence = "Medium"   # Official source auto-bumps Low → Medium
         
         return final_score, category, confidence
 

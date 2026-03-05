@@ -387,3 +387,90 @@ class ScraperAgent(BaseAgent):
         except Exception as e:
             logger.warning(f"Scraper fetch failed for {url}: {e}")
             return None
+
+
+# ──────────────────────────────────────────────────────────────
+# Agent 7: Fact-Check API Agent (Official Professional Verdicts)
+# ──────────────────────────────────────────────────────────────
+class FactCheckAgent(BaseAgent):
+    """✅ Google Fact Check Explorer — professional fact-checker database.
+    
+    Queries Snopes, AltNews, BoomLive, PolitiFact, FactCheck.org, AFP Fact Check,
+    BBC Reality Check, Reuters Fact Check, and 100+ other registered fact-checkers.
+    
+    When a match is found, this agent's verdict is treated as the highest-authority
+    signal in the credibility scoring pipeline (overrides inferred verdicts).
+    """
+
+    async def investigate(self, claim: str, analysis: dict) -> dict:
+        from src.integrations.factcheck_api import query_factcheck_api
+
+        # Try the main assertion first, then the raw claim as fallback
+        query = analysis.get('main_assertion', claim)[:200]
+        checks = await query_factcheck_api(query)
+
+        # If no results for the main assertion, retry with raw claim (broader query)
+        if not checks and query != claim[:200]:
+            checks = await query_factcheck_api(claim[:200])
+
+        if not checks:
+            return {
+                "agent": "factcheck",
+                "verdict": "insufficient",
+                "confidence": 0.0,
+                "summary": "No official fact-checks found for this claim.",
+                "sources": [],
+                "evidence": {"supporting": 0, "contradicting": 0, "neutral": 0},
+                "official_checks_found": 0,
+            }
+
+        # Build source objects — official fact-checks are always Tier 1
+        sources = []
+        for fc in checks:
+            sources.append(self._make_source(
+                url=fc.get("url", ""),
+                title=fc.get("title", f"{fc.get('publisher', 'Fact-checker')}: {fc.get('textual_rating', '')}"),
+                excerpt=f"Claim reviewed: \"{fc.get('claim_reviewed', '')[:150]}\" — Rating: {fc.get('textual_rating', 'Unknown')}",
+                tier="tier_1",        # Professional fact-checkers → Tier 1 always
+                stance=fc.get("verdict", "mixed"),
+                source_type="factcheck",
+            ))
+
+        # Compute aggregate verdict from all official checks
+        from collections import Counter
+        verdicts = [fc.get("verdict", "mixed") for fc in checks]
+        truth_scores = [fc.get("truth_score", 0.5) for fc in checks]
+        avg_truth = sum(truth_scores) / len(truth_scores)
+
+        verdict_counts = Counter(verdicts)
+        dominant_verdict = verdict_counts.most_common(1)[0][0]
+        dominant_count = verdict_counts.most_common(1)[0][1]
+        confidence = min(0.98, 0.75 + (dominant_count / len(verdicts)) * 0.23)  # 75-98%
+
+        # Build a human-readable summary
+        publishers = list({fc.get("publisher", "Unknown") for fc in checks[:4]})
+        publisher_str = ", ".join(publishers)
+        ratings = list({fc.get("textual_rating", "") for fc in checks[:4]})
+        summary = (
+            f"Found {len(checks)} official fact-check(s) from: {publisher_str}. "
+            f"Ratings include: {', '.join(ratings[:3])}. "
+            f"Overall official verdict: {dominant_verdict.upper()}."
+        )
+
+        evidence_counts = {
+            "supporting":    verdicts.count("supports"),
+            "contradicting": verdicts.count("contradicts"),
+            "neutral":       verdicts.count("mixed"),
+        }
+
+        return {
+            "agent": "factcheck",
+            "verdict": dominant_verdict,
+            "confidence": round(confidence, 2),
+            "summary": summary,
+            "sources": sources,
+            "evidence": evidence_counts,
+            "official_checks_found": len(checks),
+            "avg_truth_score": round(avg_truth, 3),
+            "is_official_verdict": True,  # Scorer uses this flag for bonus weight
+        }

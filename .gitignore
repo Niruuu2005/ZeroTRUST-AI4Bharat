@@ -22,3 +22,14 @@ coverage/
 .kiro/
 .hypothesis/
 Docs/
+
+# Sensitive files - NEVER commit
+**/accessKeys.csv
+**/*_accessKeys.csv
+**/test-admin_accessKeys.csv
+SECRETS.local
+.env
+apps/**/.env
+**/credentials.json
+**/*secret*.json
+**/*credentials*.json

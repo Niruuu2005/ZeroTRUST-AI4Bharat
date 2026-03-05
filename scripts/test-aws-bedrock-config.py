@@ -153,11 +153,11 @@ async def test_all_bedrock_models():
         print_error(f"Failed to initialize Bedrock client: {e}")
         return False
     
-    # Test each model
+    # Test each model (using active 2026 inference profile IDs with us. prefix)
     models = [
-        ('anthropic.claude-3-5-sonnet-20241022-v2:0', 'Claude 3.5 Sonnet'),
-        ('anthropic.claude-3-5-haiku-20241022-v1:0', 'Claude 3 Haiku'),
-        ('mistral.mistral-large-2407-v1:0', 'Mistral Large'),
+        (os.getenv('MANAGER_MODEL_ID', 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'), 'Claude 3.7 Sonnet (Manager)'),
+        (os.getenv('SENTIMENT_MODEL_ID', 'us.anthropic.claude-3-5-haiku-20241022-v1:0'), 'Claude 3.5 Haiku (Sentiment)'),
+        (os.getenv('RESEARCH_MODEL_ID', 'us.mistral.pixtral-large-2502-v1:0'), 'Mistral Pixtral Large (Research)'),
     ]
     
     all_passed = True

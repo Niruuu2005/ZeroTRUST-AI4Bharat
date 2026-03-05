@@ -25,7 +25,9 @@ def get_content_type(key: str) -> str:
 
 
 def lambda_handler(event, context):
+    print(f"Received event: {json.dumps(event)}")
     if not MEDIA_URL:
+        print("ERROR: MEDIA_ANALYSIS_URL not set")
         return {"statusCode": 500, "body": json.dumps({"error": "MEDIA_ANALYSIS_URL not set"})}
 
     for record in event.get("Records", []):
@@ -34,23 +36,34 @@ def lambda_handler(event, context):
         s3 = record.get("s3", {})
         bucket = s3.get("bucket", {}).get("name", "")
         key = urllib.parse.unquote_plus(s3.get("object", {}).get("key", ""))
+        
         if not bucket or not key:
             continue
+            
+        print(f"Processing S3 event: bucket={bucket}, key={key}")
+        
         # S3 URL for media-analysis (same region)
         url = f"https://{bucket}.s3.{REGION}.amazonaws.com/{key}"
         body = json.dumps({"url": url, "contentType": get_content_type(key)}).encode("utf-8")
+        
         req = urllib.request.Request(
             f"{MEDIA_URL}/analyze",
             data=body,
             headers={"Content-Type": "application/json"},
             method="POST",
         )
+        
+        print(f"Calling media analysis: {MEDIA_URL}/analyze")
+        
         try:
             with urllib.request.urlopen(req, timeout=300) as resp:
-                pass  # 200 OK
+                print(f"Analysis call status: {resp.status}")
         except urllib.error.HTTPError as e:
-            return {"statusCode": e.code, "body": e.read().decode()[:500]}
+            err_msg = e.read().decode()[:500]
+            print(f"HTTP Error {e.code}: {err_msg}")
+            return {"statusCode": e.code, "body": err_msg}
         except Exception as e:
+            print(f"Connection Error: {str(e)}")
             return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
 
     return {"statusCode": 200, "body": json.dumps({"ok": True})}
