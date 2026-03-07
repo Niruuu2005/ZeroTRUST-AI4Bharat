@@ -4,8 +4,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Default API base — user can override in Settings (saved to chrome.storage.local)
-// Change this to your deployed backend URL, e.g. https://api.zerotrust.ai/v1
-const DEFAULT_API_BASE = 'http://localhost:8000';
+// Change this to your deployed backend URL, e.g. https://api.zerotrust.ai
+const DEFAULT_API_BASE = 'http://localhost:3000';
 
 async function getApiBase() {
   const { settings } = await chrome.storage.local.get('settings');
@@ -122,14 +122,14 @@ async function handleVerify(payload) {
   const apiBase = (settings?.apiBase?.trim() || DEFAULT_API_BASE).replace(/\/$/, '');
 
   const body = {
-    type:  payload.type,   // 'text' | 'url' | 'image'
-    query: payload.query,
+    type:    payload.type,    // 'text' | 'url' | 'image'
+    content: payload.query,   // API gateway uses 'content' not 'query'
   };
 
   let result;
 
   try {
-    const res = await fetch(`${apiBase}/verify`, {
+    const res = await fetch(`${apiBase}/api/v1/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
