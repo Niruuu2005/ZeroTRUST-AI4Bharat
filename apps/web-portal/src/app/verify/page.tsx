@@ -18,19 +18,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/layout/Navbar';
-
-interface VerificationResult {
-    id: string;
-    credibility_score: number;
-    category: string;
-    confidence: number;
-    sources_consulted: number;
-    evidence_summary: string | { [key: string]: any };
-    sources: Array<{ title: string; url: string }>;
-    agent_verdicts: { [key: string]: string };
-    processing_time: number;
-    cached: boolean;
-}
+import { verifyApi, mediaApi, ApiError, type VerificationResult } from '@/lib/api';
+import { fileStore } from '@/lib/fileStore';
 
 // ── Agent pipeline config (used only by LoadingScreen) ──────────────────────
 const LOAD_AGENTS = [
@@ -295,43 +284,44 @@ function VerifyContent() {
         let cancelled = false;
 
         const fetchResults = async () => {
-            // ── Mock data (swap for real backend later) ───────────────────
-            await new Promise(resolve => setTimeout(resolve, 5200));
-            if (cancelled) return;
+            try {
+                let data: VerificationResult;
 
-            const label = fileVerify ? (fileName || 'Uploaded File') : (query || '');
-            const data: VerificationResult = {
-                id: "ZT-" + Math.floor(Math.random() * 90000 + 10000),
-                credibility_score: 87,
-                category: "Highly Credible Content",
-                confidence: 0.94,
-                sources_consulted: 25,
-                processing_time: 4.1,
-                evidence_summary:
-                    "Multiple high-authority news agencies and peer-reviewed journals confirm the premise of this claim. " +
-                    "Cross-referencing 25 global feeds across Reuters, AP, BBC, PubMed and arXiv shows strong consensus " +
-                    "among established publishers. Sentiment analysis returned a 78% positive signal with low bias score (0.12). " +
-                    "No deepfake indicators or synthetic manipulation detected in the submitted content.",
-                sources: [
-                    { title: "Reuters — Global Verification Archive", url: "https://reuters.com/fact-check" },
-                    { title: "Associated Press — AP Fact Check", url: "https://apnews.com/hub/ap-fact-check" },
-                    { title: "PubMed Central — Scientific Cross-Reference", url: "https://pubmed.ncbi.nlm.nih.gov" },
-                    { title: "BBC Reality Check", url: "https://bbc.com/news/reality_check" },
-                    { title: "Snopes — Independent Fact Checking", url: "https://snopes.com" },
-                ],
-                agent_verdicts: {
-                    "News Agent":      "Supported",
-                    "Scraper Agent":   "Supported",
-                    "Science Agent":   "Supported",
-                    "Social Agent":    "Contradicted (Low Confidence)",
-                    "Research Agent":  "Supported",
-                    "Sentiment Agent": "Neutral",
-                },
-                cached: false,
-            };
+                if (fileVerify) {
+                    const pending = fileStore.get();
+                    if (!pending) {
+                        setError('No file found. Please go back and select a file to upload.');
+                        setLoading(false);
+                        return;
+                    }
+                    const { s3Url } = await mediaApi.uploadFile(pending.file);
+                    if (cancelled) return;
+                    data = await verifyApi.submit({
+                        content: s3Url,
+                        type: pending.mode as 'image' | 'video' | 'audio',
+                        source: pending.source || undefined,
+                    });
+                    fileStore.clear();
+                } else {
+                    data = await verifyApi.submit({
+                        content: query!,
+                        type: mode as 'text' | 'url' | 'image' | 'video' | 'audio',
+                        source: source || undefined,
+                    });
+                }
 
-            setResult(data);
-            setLoading(false);
+                if (cancelled) return;
+                setResult(data);
+            } catch (err) {
+                if (cancelled) return;
+                if (err instanceof ApiError) {
+                    setError(err.message);
+                } else {
+                    setError('Verification failed. Please check your connection and try again.');
+                }
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
         };
 
         fetchResults();
@@ -399,13 +389,21 @@ function VerifyContent() {
                                             {result.category}
                                         </h1>
 
-                                        <div className="flex gap-4">
+                                        <div className="flex flex-wrap gap-3">
                                             <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black tracking-widest text-white/40">
-                                                {result.processing_time || 2.4}S LATENCY
+                                                {result.processing_time ? `${result.processing_time.toFixed(1)}S` : '—'} LATENCY
                                             </div>
                                             <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black tracking-widest text-white/40 uppercase">
                                                 {result.sources_consulted} SOURCES CITED
                                             </div>
+                                            <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black tracking-widest text-white/40 uppercase">
+                                                {result.confidence} CONFIDENCE
+                                            </div>
+                                            {result.cached && (
+                                                <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black tracking-widest text-emerald-400 uppercase">
+                                                    ⚡ {result.cache_tier ?? 'CACHED'}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -443,12 +441,28 @@ function VerifyContent() {
                                     </div>
                                 </div>
 
-                                <div className="px-6 md:px-10 pb-8">
-                                    <div className="p-5 rounded-2xl bg-white/5 border border-white/5 text-sm md:text-base font-medium text-white/70 leading-relaxed italic border-l-orange-500 border-l-4">
-                                        "{typeof result.evidence_summary === 'string'
-                                            ? result.evidence_summary
-                                            : JSON.stringify(result.evidence_summary)}"
-                                    </div>
+                                <div className="px-6 md:px-10 pb-8 space-y-4">
+                                    {result.recommendation && (
+                                        <div className="p-5 rounded-2xl bg-white/5 border border-white/5 text-sm md:text-base font-medium text-white/70 leading-relaxed italic border-l-orange-500 border-l-4">
+                                            &ldquo;{result.recommendation}&rdquo;
+                                        </div>
+                                    )}
+                                    {result.evidence_summary && typeof result.evidence_summary === 'object' && 'supporting' in result.evidence_summary && (
+                                        <div className="flex gap-3 flex-wrap">
+                                            {[
+                                                { label: 'Supporting',    key: 'supporting',    bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400',   sub: 'text-emerald-400/60' },
+                                                { label: 'Contradicting', key: 'contradicting', bg: 'bg-red-500/10',     border: 'border-red-500/20',     text: 'text-red-400',      sub: 'text-red-400/60' },
+                                                { label: 'Neutral',       key: 'neutral',       bg: 'bg-amber-500/10',  border: 'border-amber-500/20',  text: 'text-amber-400',    sub: 'text-amber-400/60' },
+                                            ].map(({ label, key, bg, border, text, sub }) => (
+                                                <div key={key} className={`flex-1 min-w-[80px] p-3 rounded-xl ${bg} border ${border} text-center`}>
+                                                    <div className={`text-2xl font-black ${text}`}>
+                                                        {(result.evidence_summary as Record<string, number>)[key] ?? 0}
+                                                    </div>
+                                                    <div className={`text-[9px] font-black uppercase tracking-widest ${sub} mt-1`}>{label}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -457,21 +471,35 @@ function VerifyContent() {
                                 <div className="glass-card p-6 border-white/5 bg-white/[0.02]">
                                     <h4 className="text-[9px] tracking-[0.3em] font-black text-white/30 mb-5 uppercase">Agent Consensus</h4>
                                     <div className="space-y-2.5">
-                                        {Object.entries(result.agent_verdicts).map(([agent, verdict]) => (
-                                            <div key={agent} className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/5">
-                                                <div className="flex items-center gap-2.5 min-w-0">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse flex-shrink-0" />
-                                                    <span className="text-[10px] font-black uppercase tracking-wider text-white/60 truncate">{agent}</span>
+                                        {Object.entries(result.agent_verdicts).map(([agent, raw]) => {
+                                            const verdict = typeof raw === 'object' && raw !== null && 'verdict' in raw
+                                                ? (raw as { verdict: string }).verdict
+                                                : String(raw);
+                                            const summary = typeof raw === 'object' && raw !== null && 'summary' in raw
+                                                ? (raw as { summary: string }).summary
+                                                : null;
+                                            const lower = verdict.toLowerCase();
+                                            return (
+                                                <div key={agent} className="px-4 py-3 rounded-xl bg-white/[0.03] border border-white/5">
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="flex items-center gap-2.5 min-w-0">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse flex-shrink-0" />
+                                                            <span className="text-[10px] font-black uppercase tracking-wider text-white/60 truncate">{agent}</span>
+                                                        </div>
+                                                        <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg whitespace-nowrap flex-shrink-0 ${
+                                                            lower.includes('true') || lower.includes('support') ? 'bg-emerald-500/10 text-emerald-400' :
+                                                            lower.includes('neutral') || lower.includes('uncertain') ? 'bg-amber-500/10 text-amber-400' :
+                                                            'bg-red-500/10 text-red-400'
+                                                        }`}>
+                                                            {verdict.toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                    {summary && (
+                                                        <p className="text-[9px] text-white/30 mt-1.5 leading-relaxed line-clamp-2">{summary}</p>
+                                                    )}
                                                 </div>
-                                                <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg whitespace-nowrap flex-shrink-0 ${
-                                                    verdict.toLowerCase().includes('support') ? 'bg-emerald-500/10 text-emerald-400' :
-                                                    verdict.toLowerCase().includes('neutral') ? 'bg-amber-500/10 text-amber-400' :
-                                                    'bg-red-500/10 text-red-400'
-                                                }`}>
-                                                    {verdict.toUpperCase()}
-                                                </span>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
@@ -493,6 +521,21 @@ function VerifyContent() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Limitations */}
+                            {result.limitations && result.limitations.length > 0 && (
+                                <div className="glass-card p-6 border-white/5 bg-white/[0.02]">
+                                    <h4 className="text-[9px] tracking-[0.3em] font-black text-white/30 mb-4 uppercase">Limitations &amp; Caveats</h4>
+                                    <ul className="space-y-2">
+                                        {result.limitations.map((lim, i) => (
+                                            <li key={i} className="flex items-start gap-2.5 text-[11px] text-white/50 font-medium">
+                                                <AlertCircle size={12} className="text-amber-500/60 flex-shrink-0 mt-0.5" />
+                                                {lim}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
 
                             {/* Re-verify + actions */}
                             <div className="pt-4 space-y-4">
