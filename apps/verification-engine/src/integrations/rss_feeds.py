@@ -76,7 +76,14 @@ async def fetch_news_from_rss(query: str, max_items: int = 25) -> list[dict[str,
         return any(w in text for w in query_words) if query_words else True
 
     tasks = [asyncio.to_thread(_parse_feed_sync, url) for url in RSS_FEED_URLS]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+    try:
+        results = await asyncio.wait_for(
+            asyncio.gather(*tasks, return_exceptions=True),
+            timeout=15.0  # Hard cap: don't let slow feeds block the whole pipeline
+        )
+    except asyncio.TimeoutError:
+        logger.warning("RSS feed fetch timed out after 15s — returning empty results")
+        return []
 
     combined: list[dict[str, Any]] = []
     seen_urls: set[str] = set()

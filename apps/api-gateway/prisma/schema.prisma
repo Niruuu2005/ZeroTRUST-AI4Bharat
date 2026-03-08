@@ -1,6 +1,3 @@
-// This is your Prisma schema file
-// Learn more: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,16 +8,16 @@ datasource db {
 }
 
 model User {
-  id                String         @id @default(uuid())
-  email             String         @unique
-  emailVerified     Boolean        @default(false)
-  passwordHash      String?
-  oauthProvider     String?
-  subscriptionTier  String         @default("free")
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  verifications     Verification[]
-  apiKeys           ApiKey[]
+  id               String         @id @default(uuid())
+  email            String         @unique
+  emailVerified    Boolean        @default(false)
+  passwordHash     String?
+  oauthProvider    String?
+  subscriptionTier String         @default("free")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @default(now()) @updatedAt
+  apiKeys          ApiKey[]
+  verifications    Verification[]
 
   @@map("users")
 }
@@ -44,8 +41,8 @@ model Verification {
   cached           Boolean  @default(false)
   sourcePlatform   String?
   userId           String?
-  user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt        DateTime @default(now())
+  user             User?    @relation(fields: [userId], references: [id])
 
   @@index([claimHash])
   @@index([userId])
@@ -68,11 +65,11 @@ model Source {
 model ApiKey {
   id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   keyHash   String   @unique
   name      String
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("api_keys")
 }

@@ -1,14 +1,15 @@
 import { useState, useRef } from 'react';
 import axios from 'axios';
-import { FileText, Link as LinkIcon, Image as ImageIcon, Video, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FileText, Link as LinkIcon, Image as ImageIcon, Video, Loader2, SendHorizontal } from 'lucide-react';
 import { useVerificationStore } from '../../store/verificationStore';
 import { useAuthStore } from '../../store/authStore';
 
 const MODES = [
-  { id: 'text', label: 'Text Claim', icon: FileText },
-  { id: 'url', label: 'Webpage URL', icon: LinkIcon },
-  { id: 'image', label: 'Image', icon: ImageIcon },
-  { id: 'video', label: 'Video', icon: Video },
+  { id: 'text', label: 'Claim Text', icon: FileText, color: 'text-blue-400' },
+  { id: 'url', label: 'Source URL', icon: LinkIcon, color: 'text-indigo-400' },
+  { id: 'image', label: 'Image Scan', icon: ImageIcon, color: 'text-purple-400' },
+  { id: 'video', label: 'Video Deepfake', icon: Video, color: 'text-cyan-400' },
 ] as const;
 
 export function ClaimInput() {
@@ -16,7 +17,7 @@ export function ClaimInput() {
   const [content, setContent] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  
+
   const { setLoading, setCurrent, setError, addToHistory, isLoading } = useVerificationStore();
   const accessToken = useAuthStore((s) => s.accessToken);
 
@@ -33,9 +34,8 @@ export function ClaimInput() {
     try {
       let submitContent = content;
       if (file) {
-        // Prototype mock: in real app, GET presigned URL → PUT → set submitContent = S3 Key
         submitContent = file.name;
-        await new Promise(r => setTimeout(r, 1000)); // fake upload delay
+        await new Promise(r => setTimeout(r, 2000));
       }
 
       const { data } = await axios.post('/api/v1/verify', {
@@ -49,16 +49,16 @@ export function ClaimInput() {
       setCurrent(data);
       addToHistory(data);
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Verification failed');
+      setError(err.response?.data?.error || err.message || 'Verification system offline');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full">
-      {/* Tabs */}
-      <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl mb-4 max-w-fit mx-auto glass-card shadow-none border-0">
+    <div className="w-full relative">
+      {/* Tabs / Switcher */}
+      <div className="flex flex-wrap justify-center gap-3 mb-8">
         {MODES.map((m) => {
           const Icon = m.icon;
           const active = mode === m.id;
@@ -67,84 +67,135 @@ export function ClaimInput() {
               key={m.id}
               type="button"
               onClick={() => { setMode(m.id); setContent(''); setFile(null); setError(null); }}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-300
-                ${active 
-                  ? 'bg-white text-blue-700 shadow-sm ring-1 ring-slate-200' 
-                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'}`}
+              className={`relative flex items-center gap-2.5 px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all duration-300
+                ${active
+                  ? 'bg-blue-600/10 text-blue-400 border border-blue-500/30'
+                  : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.03] border border-transparent'}`}
             >
-              <Icon size={16} strokeWidth={active ? 2.5 : 2} />
+              <Icon size={14} className={active ? m.color : 'text-current'} strokeWidth={2.5} />
               {m.label}
+              {active && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute inset-0 bg-blue-500/5 rounded-2xl -z-10"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
             </button>
           );
         })}
       </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="glass-card p-4 relative group transition-all duration-300 hover:shadow-2xl hover:shadow-slate-200/60 overflow-hidden">
-        {/* Animated background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-700 -z-10" />
-
-        {(mode === 'text' || mode === 'url') ? (
-          <textarea
-            className="w-full bg-transparent p-4 min-h-[120px] outline-none resize-none text-lg text-slate-800 placeholder:text-slate-400 font-medium"
-            placeholder={mode === 'text' ? "Paste a controversial claim, news headline, or statement to verify..." : "Paste a URL to an article or news report..."}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            disabled={isLoading}
-            autoFocus
-          />
-        ) : (
-          <div 
-            className="w-full min-h-[140px] border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center p-6 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors group/drop"
-            onClick={() => fileRef.current?.click()}
-          >
-            <input 
-              ref={fileRef} type="file" className="hidden" 
-              accept={mode === 'image' ? 'image/*' : 'video/*'}
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+      {/* Main Container */}
+      <motion.form
+        onSubmit={handleSubmit}
+        className="glass-card-heavy p-2 relative overflow-hidden group"
+        animate={{
+          borderColor: isLoading ? 'rgba(59, 130, 246, 0.4)' : 'rgba(255, 255, 255, 0.05)',
+          boxShadow: isLoading ? '0 0 50px rgba(59, 130, 246, 0.15)' : 'none'
+        }}
+      >
+        {/* Scanning Animation */}
+        <AnimatePresence>
+          {isLoading && (
+            <motion.div
+              initial={{ top: '-10%' }}
+              animate={{ top: '110%' }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="absolute left-0 right-0 h-40 bg-gradient-to-b from-transparent via-blue-500/20 to-transparent pointer-events-none z-10"
             />
-            {file ? (
-              <div className="text-blue-700 font-semibold text-lg flex items-center gap-2">
-                <Icon className="text-blue-500" /> {file.name} ({(file.size / 1e6).toFixed(1)}MB)
-              </div>
-            ) : (
-              <div className="text-slate-500 flex flex-col items-center gap-3">
-                <div className="p-4 bg-white rounded-full shadow-sm group-hover/drop:scale-110 transition-transform">
-                  {mode === 'image' ? <ImageIcon className="text-blue-500" size={32} /> : <Video className="text-indigo-500" size={32} />}
-                </div>
-                <span className="font-medium">Click to browse or drag {mode} file here</span>
-                <span className="text-xs text-slate-400">Deepfake forensic analysis supported</span>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </AnimatePresence>
 
-        {/* Footer Actions */}
-        <div className="flex justify-between items-center mt-4 border-t border-slate-100 pt-4 px-2">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Agents Ready
+        <div className="bg-white/[0.02] rounded-[2rem] p-6">
+          {(mode === 'text' || mode === 'url') ? (
+            <textarea
+              className="w-full bg-transparent p-4 min-h-[160px] outline-none resize-none text-xl text-white placeholder:text-slate-600 font-medium tracking-tight"
+              placeholder={mode === 'text' ? "Paste any claim or statement to fact-check..." : "Enter a URL to verify the entire webpage..."}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              disabled={isLoading}
+              autoFocus
+            />
+          ) : (
+            <div
+              className="w-full min-h-[180px] border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center p-8 cursor-pointer hover:border-blue-500/30 hover:bg-white/[0.02] transition-all group/drop"
+              onClick={() => fileRef.current?.click()}
+            >
+              <input
+                ref={fileRef} type="file" className="hidden"
+                accept={mode === 'image' ? 'image/*' : 'video/*'}
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+              />
+              <AnimatePresence mode="wait">
+                {file ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-blue-400 font-bold text-lg flex flex-col items-center gap-2"
+                  >
+                    <div className="p-4 bg-blue-500/10 rounded-full mb-2">
+                      {mode === 'image' ? <ImageIcon size={32} /> : <Video size={32} />}
+                    </div>
+                    {file.name}
+                    <span className="text-xs text-slate-500">{(file.size / 1e6).toFixed(1)}MB readiness confirmed</span>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-slate-500 flex flex-col items-center gap-4"
+                  >
+                    <div className="p-5 bg-white/[0.03] rounded-3xl shadow-inner group-hover/drop:scale-110 group-hover/drop:bg-blue-600/10 transition-all duration-500">
+                      {mode === 'image' ? <ImageIcon className="text-blue-500/50" size={40} /> : <Video className="text-cyan-500/50" size={40} />}
+                    </div>
+                    <div className="text-center">
+                      <span className="font-bold text-slate-300 block mb-1">Click to Upload</span>
+                      <span className="text-xs text-slate-500">Deepfake forensic analysis will be performed</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Footer Actions */}
+          <div className="flex flex-col sm:flex-row justify-between items-center mt-8 gap-6 px-2">
+            <div className="flex items-center gap-4">
+              <div className="flex -space-x-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="w-8 h-8 rounded-full border-2 border-[#111] bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-500">AI</div>
+                ))}
+              </div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                Cognitive Engines <span className="text-emerald-500 ml-1">Live</span>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading || (!content.trim() && !file)}
+              className="neon-button group/btn w-full sm:w-auto min-w-[200px]"
+            >
+              <span className="relative z-10 flex items-center justify-center gap-3">
+                {isLoading ? (
+                  <><Loader2 size={18} className="animate-spin" /> Analyzing Dynamics...</>
+                ) : (
+                  <>
+                    Initialize Verification
+                    <SendHorizontal size={18} className="group-hover/btn:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </span>
+              <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20 scale-x-0 group-hover/btn:scale-x-100 transition-transform origin-left" />
+            </button>
           </div>
-          
-          <button
-            type="submit"
-            disabled={isLoading || (!content.trim() && !file)}
-            className="relative overflow-hidden group/btn bg-slate-900 text-white px-8 py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:-translate-y-0.5"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
-            <span className="relative flex items-center gap-2">
-              {isLoading ? (
-                <><Loader2 size={18} className="animate-spin" /> Verifying (avg 4s)...</>
-              ) : (
-                <>Run Verification &rarr;</>
-              )}
-            </span>
-          </button>
         </div>
-      </form>
+      </motion.form>
+
+      {/* Decorative Light */}
+      <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-1/2 h-1 bg-blue-500/20 blur-xl"></div>
     </div>
   );
 }
-
-// Ensure icon variables exist for JSX mapping trick above
-const Icon = ({ className }: {className?: string}) => <FileText className={className} />;

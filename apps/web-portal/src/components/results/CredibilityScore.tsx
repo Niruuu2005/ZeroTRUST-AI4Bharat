@@ -1,91 +1,114 @@
 import { motion } from 'framer-motion';
 import { VerificationResult } from '../../store/verificationStore';
-import { ShieldAlert, ShieldCheck, HelpCircle } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, HelpCircle, Zap, Fingerprint } from 'lucide-react';
 
 export function CredibilityScore({ result }: { result: VerificationResult }) {
   const { credibility_score, category, confidence, cached, claim_type } = result;
 
   const colorStr =
-    credibility_score >= 70 ? 'text-emerald-500' :
-    credibility_score >= 40 ? 'text-amber-500' :
-    'text-red-500';
+    credibility_score >= 70 ? 'text-emerald-400' :
+      credibility_score >= 40 ? 'text-amber-400' :
+        'text-red-400';
 
-  const gradient =
-    credibility_score >= 70 ? 'from-emerald-400 to-teal-600' :
-    credibility_score >= 40 ? 'from-amber-400 to-orange-500' :
-    'from-red-500 to-rose-600';
+  const glowColor =
+    credibility_score >= 70 ? 'shadow-emerald-500/20' :
+      credibility_score >= 40 ? 'shadow-amber-500/20' :
+        'shadow-red-500/20';
 
-  const bgColor =
-    credibility_score >= 70 ? 'bg-emerald-50 border-emerald-100' :
-    credibility_score >= 40 ? 'bg-amber-50 border-amber-100' :
-    'bg-red-50 border-red-100';
+  const borderColor =
+    credibility_score >= 70 ? 'border-emerald-500/30' :
+      credibility_score >= 40 ? 'border-amber-500/30' :
+        'border-red-500/30';
 
   const Icon = credibility_score >= 70 ? ShieldCheck : credibility_score >= 40 ? HelpCircle : ShieldAlert;
 
   return (
-    <div className={`glass-card p-8 flex flex-col items-center justify-center text-center overflow-hidden relative border-2 ${bgColor}`}>
-      {/* Background decoration */}
-      <div className="absolute -top-32 -right-32 w-64 h-64 rounded-full bg-white/40 blur-3xl"></div>
-      
-      {cached && (
-        <span className="absolute top-4 right-4 text-xs font-bold uppercase tracking-wider px-3 py-1 bg-white/60 rounded-full text-slate-500 shadow-sm border border-slate-200 backdrop-blur-md">
-          ⚡ Cached
-        </span>
-      )}
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`glass-card-heavy p-8 flex flex-col items-center justify-center text-center overflow-hidden relative border ${borderColor} ${glowColor}`}
+    >
+      <div className="absolute top-0 right-0 p-6 flex flex-col items-end gap-2">
+        {cached && (
+          <motion.div
+            initial={{ x: 20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full text-blue-400"
+          >
+            <Zap size={10} fill="currentColor" /> Neural Cache
+          </motion.div>
+        )}
+        <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-slate-500">
+          <Fingerprint size={10} /> {claim_type}
+        </div>
+      </div>
 
-      <div className="relative">
+      <div className="relative mt-4">
         <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 100, damping: 15 }}
-          className={`w-40 h-40 rounded-full flex items-center justify-center bg-white shadow-2xl shadow-slate-200 relative z-10`}
+          initial={{ rotate: -90, opacity: 0 }}
+          animate={{ rotate: 0, opacity: 1 }}
+          transition={{ duration: 1, ease: "circOut" }}
+          className="relative"
         >
-          {/* Circular progress bar SVG mapping the score out of 100 */}
-          <svg className="absolute inset-0 w-full h-full transform -rotate-90">
-            <circle cx="80" cy="80" r="70" fill="none" className="stroke-slate-100" strokeWidth="8" />
+          <svg className="w-48 h-48 transform -rotate-90">
+            <circle cx="96" cy="96" r="88" fill="none" className="stroke-white/5" strokeWidth="4" />
             <motion.circle
-              cx="80" cy="80" r="70" fill="none"
-              stroke="url(#gradient)" strokeWidth="8" strokeLinecap="round"
-              initial={{ strokeDasharray: 440, strokeDashoffset: 440 }}
-              animate={{ strokeDashoffset: 440 - (440 * credibility_score) / 100 }}
-              transition={{ duration: 1.5, ease: "easeOut" }}
+              cx="96" cy="96" r="88" fill="none"
+              stroke="currentColor" strokeWidth="12" strokeLinecap="round"
+              className={colorStr}
+              initial={{ strokeDasharray: 553, strokeDashoffset: 553 }}
+              animate={{ strokeDashoffset: 553 - (553 * credibility_score) / 100 }}
+              transition={{ duration: 2, delay: 0.5, ease: "circOut" }}
             />
-            <defs>
-              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" className={credibility_score >= 70 ? 'stop-emerald-400' : credibility_score >= 40 ? 'stop-amber-400' : 'stop-red-500'} />
-                <stop offset="100%" className={credibility_score >= 70 ? 'stop-teal-600' : credibility_score >= 40 ? 'stop-orange-500' : 'stop-rose-600'} />
-              </linearGradient>
-            </defs>
           </svg>
 
-          <div className="flex flex-col items-center">
-            <Icon size={32} strokeWidth={2.5} className={`mb-1 ${colorStr}`} />
-            <span className={`text-4xl font-black tabular-nums tracking-tighter bg-clip-text text-transparent bg-gradient-to-br ${gradient}`}>
-              {credibility_score}
-            </span>
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-0.5">/ 100</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1 }}
+              className="flex flex-col items-center"
+            >
+              <Icon size={32} className={`${colorStr} mb-1 drop-shadow-2xl`} />
+              <span className="text-6xl font-black tabular-nums tracking-tighter text-white">
+                {credibility_score}
+              </span>
+              <span className="text-[10px] uppercase font-black text-slate-500 tracking-[0.3em]">Precision</span>
+            </motion.div>
           </div>
         </motion.div>
       </div>
 
-      <div className="mt-8 relative z-10 w-full">
-        <h2 className={`text-2xl font-black mb-2 ${colorStr}`}>{category}</h2>
-        
-        <div className="flex items-center justify-center gap-4 mt-6">
-          <div className="px-4 py-2 bg-white rounded-xl shadow-sm border border-slate-100">
-            <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Confidence</div>
-            <div className={`text-sm font-bold ${confidence === 'High' ? 'text-emerald-600' : confidence === 'Medium' ? 'text-blue-600' : 'text-slate-600'}`}>
-              {confidence}
+      <div className="mt-10 w-full">
+        <motion.h2
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+          className={`text-4xl font-black mb-4 tracking-tighter uppercase ${colorStr}`}
+        >
+          {category}
+        </motion.h2>
+
+        <div className="grid grid-cols-2 gap-4 mt-8">
+          <div className="p-5 rounded-3xl bg-white/[0.02] border border-white/5 text-left">
+            <div className="text-[10px] uppercase font-black text-slate-500 mb-2 tracking-widest">Confidence Index</div>
+            <div className={`text-lg font-bold flex items-center gap-2 ${confidence === 'High' ? 'text-emerald-400' : 'text-blue-400'}`}>
+              <span className={`w-2 h-2 rounded-full ${confidence === 'High' ? 'bg-emerald-500' : 'bg-blue-500'} shadow-[0_0_10px_currentColor]`} />
+              {confidence} Level
             </div>
           </div>
-          <div className="px-4 py-2 bg-white rounded-xl shadow-sm border border-slate-100">
-            <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Type</div>
-            <div className="text-sm font-bold text-slate-700 capitalize">
-              {claim_type}
+
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="p-5 rounded-3xl bg-blue-600/10 border border-blue-500/20 text-left"
+          >
+            <div className="text-[10px] uppercase font-black text-blue-500/60 mb-2 tracking-widest">Protocol Status</div>
+            <div className="text-lg font-bold text-blue-400">
+              Verified Result
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

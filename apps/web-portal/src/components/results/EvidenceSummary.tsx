@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Layers } from 'lucide-react';
 
 interface EvidenceSummaryProps {
   evidence_summary: { supporting: number; contradicting: number; neutral: number };
@@ -12,50 +13,58 @@ export function EvidenceSummary({ evidence_summary }: EvidenceSummaryProps) {
   const neutralPct = 100 - supportPct - contraPct;
 
   return (
-    <div className="glass-card p-6">
-      <h3 className="text-sm uppercase tracking-widest font-bold text-slate-400 mb-4">Evidence Summary</h3>
-      <div className="space-y-3">
-        <div>
-          <div className="flex justify-between text-xs font-medium text-slate-500 mb-1">
-            <span>Supporting</span>
-            <span>{supporting} sources</span>
+    <div className="glass-card-heavy p-8 border-white/5 bg-gradient-to-br from-white/[0.02] to-transparent">
+      <h3 className="text-xs uppercase tracking-[0.2em] font-black text-slate-500 mb-6 flex items-center gap-2">
+        <Layers size={14} className="text-blue-500" /> Statistical Weight
+      </h3>
+
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <div className="flex justify-between items-end">
+            <span className="text-xs font-black uppercase tracking-widest text-emerald-400">Supporting Evidence</span>
+            <span className="text-xl font-black text-white">{supportPct}<span className="text-[10px] text-slate-500 ml-1">%</span></span>
           </div>
-          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-3 bg-black/40 rounded-full overflow-hidden p-0.5 border border-white/5">
             <motion.div
-              className="h-full bg-emerald-500 rounded-full"
+              className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full shadow-[0_0_15px_rgba(52,211,153,0.3)]"
               initial={{ width: 0 }}
               animate={{ width: `${supportPct}%` }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
+              transition={{ duration: 1.2, ease: 'circOut' }}
             />
           </div>
+          <div className="text-[10px] font-black text-slate-600 text-right uppercase tracking-widest">{supporting} Citations Found</div>
         </div>
-        <div>
-          <div className="flex justify-between text-xs font-medium text-slate-500 mb-1">
-            <span>Contradicting</span>
-            <span>{contradicting} sources</span>
+
+        <div className="space-y-2">
+          <div className="flex justify-between items-end">
+            <span className="text-xs font-black uppercase tracking-widest text-red-400">Conflicting Evidence</span>
+            <span className="text-xl font-black text-white">{contraPct}<span className="text-[10px] text-slate-500 ml-1">%</span></span>
           </div>
-          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-3 bg-black/40 rounded-full overflow-hidden p-0.5 border border-white/5">
             <motion.div
-              className="h-full bg-red-500 rounded-full"
+              className="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full shadow-[0_0_15px_rgba(248,113,113,0.3)]"
               initial={{ width: 0 }}
               animate={{ width: `${contraPct}%` }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
+              transition={{ duration: 1.2, ease: 'circOut' }}
             />
           </div>
+          <div className="text-[10px] font-black text-slate-600 text-right uppercase tracking-widest">{contradicting} Contradictions Cited</div>
         </div>
-        <div>
-          <div className="flex justify-between text-xs font-medium text-slate-500 mb-1">
-            <span>Neutral</span>
-            <span>{neutral} sources</span>
+
+        <div className="space-y-2">
+          <div className="flex justify-between items-end">
+            <span className="text-xs font-black uppercase tracking-widest text-slate-400">Ambiguous / Neutral</span>
+            <span className="text-xl font-black text-white">{neutralPct}<span className="text-[10px] text-slate-500 ml-1">%</span></span>
           </div>
-          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-3 bg-black/40 rounded-full overflow-hidden p-0.5 border border-white/5">
             <motion.div
-              className="h-full bg-slate-400 rounded-full"
+              className="h-full bg-gradient-to-r from-slate-600 to-slate-400 rounded-full shadow-[0_0_15px_rgba(148,163,184,0.2)]"
               initial={{ width: 0 }}
               animate={{ width: `${neutralPct}%` }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
+              transition={{ duration: 1.2, ease: 'circOut' }}
             />
           </div>
+          <div className="text-[10px] font-black text-slate-600 text-right uppercase tracking-widest">{neutral} Unverifiable Points</div>
         </div>
       </div>
     </div>

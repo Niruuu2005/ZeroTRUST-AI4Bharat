@@ -15,23 +15,23 @@ _bedrock_client = None
 
 MODEL_CONFIGS = {
     'manager': {
-        'modelId': 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+        'modelId': os.getenv('MANAGER_MODEL_ID', 'us.amazon.nova-pro-v1:0'),
         'inferenceConfig': {'maxTokens': 4096, 'temperature': 0.3, 'topP': 0.9}
     },
     'research': {
-        'modelId': 'mistral.mistral-large-2407-v1:0',
+        'modelId': os.getenv('RESEARCH_MODEL_ID', 'us.mistral.pixtral-large-2502-v1:0'),
         'inferenceConfig': {'maxTokens': 2048, 'temperature': 0.4, 'topP': 0.85}
     },
     'sentiment': {
-        'modelId': 'anthropic.claude-3-5-haiku-20241022-v1:0',
+        'modelId': os.getenv('SENTIMENT_MODEL_ID', 'us.amazon.nova-lite-v1:0'),
         'inferenceConfig': {'maxTokens': 1024, 'temperature': 0.2}
     },
 }
 
 FALLBACK_CHAIN = [
-    'anthropic.claude-3-5-sonnet-20241022-v2:0',
-    'anthropic.claude-3-5-haiku-20241022-v1:0',
-    'mistral.mistral-large-2407-v1:0',
+    os.getenv('MANAGER_MODEL_ID', 'us.amazon.nova-pro-v1:0'),
+    os.getenv('SENTIMENT_MODEL_ID', 'us.amazon.nova-lite-v1:0'),
+    os.getenv('RESEARCH_MODEL_ID', 'us.mistral.pixtral-large-2502-v1:0'),
 ]
 
 
