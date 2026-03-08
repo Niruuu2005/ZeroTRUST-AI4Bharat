@@ -1,13 +1,11 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
+import { validateQuery } from '../middleware/validate.middleware';
+import { trendingQuerySchema } from '../validators';
 import { prisma } from '../config/database';
 import { logger } from '../utils/logger';
 
 const router = Router();
-
-const DEFAULT_LIMIT = 20;
-const DEFAULT_DAYS = 7;
-const MAX_LIMIT = 100;
 
 type TrendingRow = {
   claimHash: string;
@@ -20,12 +18,8 @@ type TrendingRow = {
 };
 
 // GET /api/v1/trending — Trending claims by verification count (Diagram 2: Trending Fake News)
-router.get('/', async (req, res) => {
-  const limit = Math.min(
-    parseInt(req.query.limit as string, 10) || DEFAULT_LIMIT,
-    MAX_LIMIT
-  );
-  const days = Math.min(Math.max(parseInt(req.query.days as string, 10) || DEFAULT_DAYS, 1), 90);
+router.get('/', validateQuery(trendingQuerySchema), async (req, res) => {
+  const { limit, days } = req.query as any;
 
   try {
     const since = new Date();
