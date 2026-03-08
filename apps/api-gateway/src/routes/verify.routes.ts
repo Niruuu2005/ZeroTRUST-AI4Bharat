@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { optionalAuth } from '../middleware/auth.middleware';
-import { validateBody } from '../middleware/validate.middleware';
+import { validateBody, validateParams } from '../middleware/validate.middleware';
 import { VerificationService } from '../services/VerificationService';
-import { verifyBodySchema } from '../validators';
+import { verifyBodySchema, uuidParamSchema } from '../validators';
 import { logger } from '../utils/logger';
 
 const router = Router();
@@ -23,7 +23,7 @@ router.post('/', optionalAuth, validateBody(verifyBodySchema), async (req, res) 
 });
 
 // GET /api/v1/verify/:id — Get verification by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', validateParams(uuidParamSchema), async (req, res) => {
   const { id } = req.params;
   
   try {
