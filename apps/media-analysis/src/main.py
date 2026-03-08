@@ -8,6 +8,7 @@ import os
 import time
 import uuid
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from src.s3_utils import is_s3_url
@@ -20,6 +21,18 @@ from src.evidence_merge import (
 )
 
 app = FastAPI(title="ZeroTRUST Media Analysis", version="2.0.0")
+
+# Allow API gateway and local dev tools to reach this service
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://zerotrust.ai",
+    ],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 
 class AnalyzeRequest(BaseModel):

@@ -1,0 +1,257 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   ZeroTrust AI — Content Script Styles
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Selection tooltip ───────────────────────────────────────────────────── */
+#zt-tooltip {
+  position: absolute;
+  z-index: 2147483647;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: auto;
+}
+
+#zt-tooltip #zt-verify-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  background: #f97316;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(249,115,22,0.5);
+  white-space: nowrap;
+}
+
+#zt-tooltip #zt-verify-btn:hover {
+  background: #ea580c;
+}
+
+/* ── Loading overlay ─────────────────────────────────────────────────────── */
+#zt-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+#zt-loading-overlay.zt-visible { opacity: 1; }
+
+#zt-loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 32px 40px;
+  background: #0d0d0d;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  box-shadow: 0 0 80px rgba(249,115,22,0.2);
+}
+
+.zt-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(249,115,22,0.2);
+  border-top-color: #f97316;
+  border-radius: 50%;
+  animation: zt-spin 0.8s linear infinite;
+}
+
+@keyframes zt-spin { to { transform: rotate(360deg); } }
+
+.zt-loading-text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.zt-loading-sub {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+}
+
+/* ── Verdict card ────────────────────────────────────────────────────────── */
+#zt-verdict-card {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2147483645;
+  width: 300px;
+  background: #0d0d0d;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  box-shadow: 0 8px 60px rgba(0,0,0,0.7), 0 0 40px rgba(249,115,22,0.1);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#zt-verdict-card.zt-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.zt-verdict-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(249,115,22,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.zt-verdict-logo {
+  width: 24px;
+  height: 24px;
+  background: #f97316;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.zt-verdict-brand {
+  flex: 1;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.zt-close-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.3);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.zt-close-btn:hover { color: #fff; }
+
+.zt-verdict-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.zt-verdict-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  width: fit-content;
+}
+
+.zt-verdict-icon { font-size: 13px; }
+
+.zt-score-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.zt-score-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s ease;
+}
+
+.zt-score-label {
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.zt-score-label strong { color: rgba(255,255,255,0.7); }
+
+.zt-summary {
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.zt-agents {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 10px;
+}
+
+.zt-agent-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zt-agent-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.zt-agent-name {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.zt-open-sidebar {
+  width: 100%;
+  padding: 8px;
+  background: rgba(249,115,22,0.1);
+  border: 1px solid rgba(249,115,22,0.2);
+  border-radius: 10px;
+  color: #f97316;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background 0.2s ease;
+}
+
+.zt-open-sidebar:hover {
+  background: rgba(249,115,22,0.2);
+}

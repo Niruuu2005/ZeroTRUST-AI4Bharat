@@ -55,7 +55,7 @@ $('verify').addEventListener('click', async () => {
   }
 });
 
-$('settings').addEventListener('click', (e) => {
+$('settings').addEventListener('click', async (e) => {
   e.preventDefault();
   const base = prompt('API base URL (e.g. http://localhost:3000):', await getApiBase());
   if (base != null) chrome.storage.local.set({ apiBase: base.trim() || DEFAULT_API });

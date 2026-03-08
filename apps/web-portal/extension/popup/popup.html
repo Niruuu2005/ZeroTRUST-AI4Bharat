@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZeroTrust AI</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <span class="logo-name">Zero<span class="accent">Trust</span> AI</span>
+        <span class="logo-sub">6-Agent Verification</span>
+      </div>
+    </div>
+    <button class="settings-btn" id="open-settings" title="Settings">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- Main panel (default) -->
+  <div id="panel-main" class="panel active">
+
+    <!-- Input area -->
+    <div class="input-section">
+      <div class="input-tabs">
+        <button class="tab active" data-tab="text">Text / URL</button>
+        <button class="tab" data-tab="image">Image URL</button>
+      </div>
+      <div class="input-wrap">
+        <textarea id="verify-input" placeholder="Paste a claim, article URL, or image URL…" rows="3"></textarea>
+      </div>
+      <button class="verify-btn" id="verify-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        VERIFY NOW
+      </button>
+    </div>
+
+    <!-- Loading state -->
+    <div id="loading-state" class="state hidden">
+      <div class="spinner"></div>
+      <p class="state-title">Analyzing…</p>
+      <p class="state-sub">6 agents are processing your request</p>
+    </div>
+
+    <!-- Result card -->
+    <div id="result-card" class="result-card hidden">
+      <div class="result-verdict-row">
+        <div id="result-chip" class="verdict-chip"></div>
+        <span id="result-score" class="result-score"></span>
+      </div>
+      <div class="score-bar"><div id="score-fill" class="score-fill"></div></div>
+      <p id="result-summary" class="result-summary"></p>
+      <div id="agent-list" class="agent-list"></div>
+      <button class="open-sidebar-btn" id="open-sidebar-btn">
+        View full report in sidebar →
+      </button>
+    </div>
+
+    <!-- History -->
+    <div class="history-section">
+      <div class="section-label">Recent</div>
+      <div id="history-list" class="history-list">
+        <p class="empty-msg">No verifications yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings panel -->
+  <div id="panel-settings" class="panel">
+    <div class="settings-header">
+      <button id="back-btn" class="back-btn">← Back</button>
+      <span class="settings-title">Settings</span>
+    </div>
+    <div class="settings-body">
+      <label class="setting-row">
+        <div>
+          <div class="setting-name">Backend URL</div>
+          <div class="setting-desc">ZeroTrust API base (e.g. http://localhost:8000)</div>
+        </div>
+        <input type="text" id="api-base-input" class="setting-input" placeholder="http://localhost:8000" />
+      </label>
+      <label class="setting-row">
+        <div>
+          <div class="setting-name">API Key</div>
+          <div class="setting-desc">Your ZeroTrust backend key (optional)</div>
+        </div>
+        <input type="password" id="api-key-input" class="setting-input" placeholder="zt_live_…" />
+      </label>
+      <label class="setting-row toggle-row">
+        <div>
+          <div class="setting-name">Auto-scan pages</div>
+          <div class="setting-desc">Flag claims automatically while browsing</div>
+        </div>
+        <div class="toggle" id="toggle-autoscan">
+          <div class="toggle-knob"></div>
+        </div>
+      </label>
+      <label class="setting-row toggle-row">
+        <div>
+          <div class="setting-name">Highlight claims</div>
+          <div class="setting-desc">Underline verifiable claims on-page</div>
+        </div>
+        <div class="toggle" id="toggle-highlight">
+          <div class="toggle-knob"></div>
+        </div>
+      </label>
+      <button class="save-btn" id="save-settings">Save Settings</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
