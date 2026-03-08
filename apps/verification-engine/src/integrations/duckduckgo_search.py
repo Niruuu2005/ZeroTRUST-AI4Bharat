@@ -45,10 +45,30 @@ def _ddg_news_sync(query: str, max_results: int = 10) -> list[dict[str, Any]]:
 
 
 async def search_web(query: str, max_results: int = 10) -> list[dict[str, Any]]:
-    """Async wrapper: DuckDuckGo text search (no API key)."""
-    return await asyncio.to_thread(_ddg_text_sync, query, max_results)
+    """Async wrapper: DuckDuckGo text search (no API key). Hard 8s timeout."""
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(_ddg_text_sync, query, max_results),
+            timeout=8.0
+        )
+    except asyncio.TimeoutError:
+        logger.warning(f"DuckDuckGo text search timed out for: {query[:50]}")
+        return []
+    except Exception as e:
+        logger.warning(f"DuckDuckGo text search error: {e}")
+        return []
 
 
 async def search_news(query: str, max_results: int = 10) -> list[dict[str, Any]]:
-    """Async wrapper: DuckDuckGo news search (no API key)."""
-    return await asyncio.to_thread(_ddg_news_sync, query, max_results)
+    """Async wrapper: DuckDuckGo news search (no API key). Hard 8s timeout."""
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(_ddg_news_sync, query, max_results),
+            timeout=8.0
+        )
+    except asyncio.TimeoutError:
+        logger.warning(f"DuckDuckGo news search timed out for: {query[:50]}")
+        return []
+    except Exception as e:
+        logger.warning(f"DuckDuckGo news search error: {e}")
+        return []

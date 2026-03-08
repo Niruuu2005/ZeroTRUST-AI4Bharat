@@ -16,7 +16,7 @@ from src.normalization import NormalizationLayer
 from src.integrations.bedrock import invoke_bedrock
 from src.agents import (
     ResearchAgent, NewsAgent, ScientificAgent,
-    SocialMediaAgent, SentimentAgent, ScraperAgent
+    SocialMediaAgent, SentimentAgent, ScraperAgent, FactCheckAgent
 )
 from src.services.scorer import CredibilityScorer
 from src.services.evidence import EvidenceAggregator
@@ -33,19 +33,20 @@ AGENT_REGISTRY = {
     'social_media': SocialMediaAgent(),
     'sentiment': SentimentAgent(),
     'scraper': ScraperAgent(),
+    'factcheck': FactCheckAgent(),  # Agent 7: Official professional fact-checker database
 }
 
 # Domain → agents mapping
 DOMAIN_AGENTS = {
-    'politics': ['news', 'social_media', 'research', 'sentiment'],
-    'health': ['scientific', 'news', 'research'],
-    'science': ['scientific', 'research'],
-    'technology': ['news', 'research'],
-    'climate': ['scientific', 'news', 'research'],
-    'sports': ['news', 'social_media'],
-    'entertainment': ['news', 'social_media'],
-    'business': ['news', 'research'],
-    'default': ['research', 'news', 'social_media'],
+    'politics':      ['news', 'social_media', 'research', 'sentiment', 'factcheck'],
+    'health':        ['scientific', 'news', 'research', 'factcheck'],
+    'science':       ['scientific', 'research', 'factcheck'],
+    'technology':    ['news', 'research', 'factcheck'],
+    'climate':       ['scientific', 'news', 'research', 'factcheck'],
+    'sports':        ['news', 'social_media', 'factcheck'],
+    'entertainment': ['news', 'social_media', 'factcheck'],
+    'business':      ['news', 'research', 'factcheck'],
+    'default':       ['research', 'news', 'social_media', 'factcheck'],
 }
 
 
@@ -192,8 +193,9 @@ Claim: {claim}"""
         domain = state['claim_analysis'].get('domain', 'default')
         agents = set(DOMAIN_AGENTS.get(domain, DOMAIN_AGENTS['default']))
         
-        # Always include sentiment for manipulation detection
+        # Always include: sentiment (manipulation) + factcheck (official truth DB)
         agents.add('sentiment')
+        agents.add('factcheck')
         
         # Add scraper if URL detected
         meta = state['normalized'].get('metadata', {})
@@ -208,7 +210,7 @@ Claim: {claim}"""
         if state['claim_analysis'].get('type') == 'statistical':
             agents.add('research')
         
-        logger.info(f"Selected agents: {agents}")
+        logger.info(f"Selected agents: {sorted(agents)}")
         return {"selected_agents": list(agents)}
 
     async def _execute_agents_node(self, state: AgentState) -> dict:
@@ -267,12 +269,32 @@ Claim: {claim}"""
     async def _calculate_credibility_node(self, state: AgentState) -> dict:
         """Calculate credibility score."""
         logger.info("Node: calculate_credibility")
-        credibility = self.scorer.calculate(
-            evidence=state['evidence'],
+        evidence = state['evidence']
+        sources = evidence.get('sources', [])
+        evidence_summary = evidence.get('summary', {})
+
+        score, category, confidence = self.scorer.calculate(
             agent_results=state['agent_results'],
-            claim_analysis=state['claim_analysis'],
+            sources=sources,
+            evidence_summary=evidence_summary,
         )
-        return {"credibility": credibility}
+
+        # Build agent consensus string
+        from collections import Counter
+        verdicts = [r.get('verdict', 'insufficient') for r in state['agent_results']
+                    if r.get('verdict') not in ('insufficient', None)]
+        if verdicts:
+            most_common, count = Counter(verdicts).most_common(1)[0]
+            consensus = f"{most_common} ({count}/{len(verdicts)} agents agree)"
+        else:
+            consensus = "No consensus reached"
+
+        return {"credibility": {
+            "score": score,
+            "category": category,
+            "confidence": confidence,
+            "consensus": consensus,
+        }}
 
     async def _generate_report_node(self, state: AgentState) -> dict:
         """Generate final report."""

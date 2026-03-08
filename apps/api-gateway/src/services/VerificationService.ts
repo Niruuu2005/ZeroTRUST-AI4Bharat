@@ -77,24 +77,24 @@ export class VerificationService {
       setDynamo(key, result),
       prisma.verification.create({
         data: {
-          id:               result.id ?? undefined,
-          claimHash:        key,
-          claimText:        content,
-          claimType:        type,
+          id: result.id ?? undefined,
+          claimHash: key,
+          claimText: content,
+          claimType: type,
           credibilityScore: result.credibility_score,
-          category:         result.category,
-          confidence:       result.confidence,
+          category: result.category,
+          confidence: result.confidence,
           sourcesConsulted: result.sources_consulted ?? 0,
-          agentConsensus:   result.agent_consensus ?? null,
-          evidenceSummary:  result.evidence_summary ?? {},
-          sources:          result.sources ?? [],
-          agentVerdicts:    result.agent_verdicts ?? {},
-          limitations:      result.limitations ?? [],
-          recommendation:   result.recommendation ?? null,
-          processingTime:   result.processing_time ?? null,
-          cached:           false,
-          sourcePlatform:   source,
-          userId:           userId !== 'anonymous' ? userId : null,
+          agentConsensus: result.agent_consensus ?? null,
+          evidenceSummary: result.evidence_summary ?? {},
+          sources: result.sources ?? [],
+          agentVerdicts: result.agent_verdicts ?? {},
+          limitations: result.limitations ?? [],
+          recommendation: result.recommendation ?? null,
+          processingTime: result.processing_time ?? null,
+          cached: false,
+          sourcePlatform: source,
+          userId: userId !== 'anonymous' ? userId : null,
         },
       }),
     ]);
@@ -125,7 +125,7 @@ export class VerificationService {
     try {
       const { data } = await axios.post(`${VE_URL}/verify`, {
         content, type, source, user_id: userId,
-      }, { timeout: 30_000 });
+      }, { timeout: 120_000 }); // 2 min — Bedrock multi-agent pipeline can take 30-60s
       return data;
     } catch (err: any) {
       const msg = err.response?.data?.detail ?? err.response?.data?.error ?? err.message ?? err.code ?? 'Unknown error';
@@ -157,19 +157,19 @@ export class VerificationService {
 
   private serializeVerification(row: any) {
     return {
-      id:               row.id,
+      id: row.id,
       credibility_score: row.credibilityScore,
-      category:         row.category,
-      confidence:       row.confidence,
+      category: row.category,
+      confidence: row.confidence,
       sources_consulted: row.sourcesConsulted,
-      agent_consensus:  row.agentConsensus,
+      agent_consensus: row.agentConsensus,
       evidence_summary: row.evidenceSummary,
-      sources:          row.sources,
-      agent_verdicts:   row.agentVerdicts,
-      limitations:      row.limitations,
-      recommendation:   row.recommendation,
-      processing_time:  row.processingTime,
-      created_at:       row.createdAt?.toISOString(),
+      sources: row.sources,
+      agent_verdicts: row.agentVerdicts,
+      limitations: row.limitations,
+      recommendation: row.recommendation,
+      processing_time: row.processingTime,
+      created_at: row.createdAt?.toISOString(),
     };
   }
 }
