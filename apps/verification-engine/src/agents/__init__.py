@@ -47,6 +47,54 @@ def _tier_from_url(url: str) -> str:
     return 'tier_4'
 
 
+def _stamp_source_stances(sources: list[dict], verdict: str) -> list[dict]:
+    """
+    Update source 'stance' fields based on the LLM's overall verdict.
+    Sources are fetched with stance='neutral' by default; this function
+    stamps them so the CredibilityScorer can calculate meaningful scores.
+
+    - supports    → top-tier sources marked 'supporting', rest stay 'neutral'
+    - contradicts → top-tier sources marked 'contradicting', rest stay 'neutral'
+    - mixed       → split: first half 'supporting', second half 'contradicting'
+    - insufficient → all stay 'neutral'
+    """
+    if verdict == 'insufficient' or not sources:
+        return sources
+
+    stamped = [s.copy() for s in sources]
+
+    if verdict == 'supports':
+        for s in stamped:
+            s['stance'] = 'supporting'
+
+    elif verdict == 'contradicts':
+        for s in stamped:
+            s['stance'] = 'contradicting'
+
+    elif verdict == 'mixed':
+        mid = max(1, len(stamped) // 2)
+        for s in stamped[:mid]:
+            s['stance'] = 'supporting'
+        for s in stamped[mid:]:
+            s['stance'] = 'contradicting'
+
+    return stamped
+
+
+def _evidence_counts(sources: list[dict]) -> dict:
+    """Count actual stamped stances so evidence dict stays in sync with sources."""
+    counts = {"supporting": 0, "contradicting": 0, "neutral": 0}
+    for s in sources:
+        stance = s.get('stance', 'neutral')
+        if stance == 'supporting':
+            counts['supporting'] += 1
+        elif stance == 'contradicting':
+            counts['contradicting'] += 1
+        else:
+            counts['neutral'] += 1
+    return counts
+
+
 async def _llm_verdict(config_key: str, claim: str, context: str, label: str) -> dict:
     prompt = f"""You are a real-time fact-checker with access to live web search results.
 The sources below are fetched RIGHT NOW from the internet — they may include recent events
@@ -96,7 +144,9 @@ class ResearchAgent(BaseAgent):
 
         context = "\n".join([f"- {s['title']}: {s['excerpt'][:150]}" for s in sources[:10]])
         verdict = await _llm_verdict('research', claim, context, 'web search')
-        return {"agent": "research", **verdict, "sources": sources[:15]}
+        stamped_sources = _stamp_source_stances(sources[:15], verdict.get('verdict', 'insufficient'))
+        verdict['evidence'] = _evidence_counts(stamped_sources)
+        return {"agent": "research", **verdict, "sources": stamped_sources}
 
     async def _duckduckgo_search(self, query: str) -> list:
         """In-house: DuckDuckGo text search (no API key)."""
@@ -189,7 +239,9 @@ class NewsAgent(BaseAgent):
         context = "\n".join([f"- {s['title']} ({s.get('published_at','')}): {s['excerpt'][:150]}"
                             for s in sources[:12]])
         verdict = await _llm_verdict('manager', claim, context, 'news')
-        return {"agent": "news", **verdict, "sources": sources}
+        stamped_sources = _stamp_source_stances(sources, verdict.get('verdict', 'insufficient'))
+        verdict['evidence'] = _evidence_counts(stamped_sources)
+        return {"agent": "news", **verdict, "sources": stamped_sources}
 
     def _normalize_news_source(self, item: dict) -> dict:
         """Convert RSS/DDG news item to standard source format."""
@@ -245,7 +297,9 @@ Return ONLY JSON:
         except Exception:
             parsed = {"verdict": "insufficient", "confidence": 0.0, "summary": "Parse failed", "evidence": {}}
 
-        return {"agent": "scientific", **parsed, "sources": papers[:10]}
+        stamped = _stamp_source_stances(papers[:10], parsed.get('verdict', 'insufficient'))
+        parsed['evidence'] = _evidence_counts(stamped)
+        return {"agent": "scientific", **parsed, "sources": stamped}
 
     async def _pubmed(self, query: str) -> list:
         try:
@@ -317,7 +371,9 @@ class SocialMediaAgent(BaseAgent):
 
         context = "\n".join([f"- {s['title']}: {s['excerpt'][:100]}" for s in sources[:10]])
         verdict = await _llm_verdict('sentiment', claim, context, 'social media')
-        return {"agent": "social_media", **verdict, "sources": sources[:15]}
+        stamped_sources = _stamp_source_stances(sources[:15], verdict.get('verdict', 'insufficient'))
+        verdict['evidence'] = _evidence_counts(stamped_sources)
+        return {"agent": "social_media", **verdict, "sources": stamped_sources}
 
     async def _reddit(self, q: str) -> list:
         try:
