@@ -17,6 +17,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ZeroTRUST | Multi-Agent AI Verification Hub",
   description: "Advanced multi-agent AI system for real-time claim verification, deepfake detection, and news integrity analysis.",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({
