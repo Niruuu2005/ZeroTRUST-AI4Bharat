@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZeroTrust AI — Sidebar</title>
+  <link rel="stylesheet" href="sidebar.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <span class="logo-name">Zero<span class="accent">Trust</span> AI</span>
+    </div>
+    <div class="header-right">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-label" id="status-label">Idle</span>
+    </div>
+  </header>
+
+  <!-- Quick verify bar -->
+  <div class="quick-bar">
+    <input id="quick-input" type="text" placeholder="Paste a URL, claim, or image link…" />
+    <button id="quick-verify-btn" class="quick-btn">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ── IDLE VIEW ─────────────────────────────────────────────────────────── -->
+  <div id="view-idle" class="view active">
+    <div class="idle-hero">
+      <div class="idle-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(249,115,22,0.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <p class="idle-title">Ready to Verify</p>
+      <p class="idle-sub">
+        Select text on any page and click <strong>Verify with ZeroTrust</strong>,
+        right-click any link, or paste a claim above.
+      </p>
+    </div>
+
+    <!-- Tips -->
+    <div class="tips">
+      <div class="tip">
+        <div class="tip-icon">⌨</div>
+        <div>
+          <div class="tip-title">Keyboard shortcut</div>
+          <div class="tip-desc">Select text then press <kbd>Ctrl+Shift+V</kbd> to verify instantly</div>
+        </div>
+      </div>
+      <div class="tip">
+        <div class="tip-icon">🖱</div>
+        <div>
+          <div class="tip-title">Right-click menu</div>
+          <div class="tip-desc">Right-click any selection, link, or image</div>
+        </div>
+      </div>
+      <div class="tip">
+        <div class="tip-icon">🖼</div>
+        <div>
+          <div class="tip-title">Deepfake detection</div>
+          <div class="tip-desc">Right-click any image → Check image for deepfakes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LOADING VIEW ──────────────────────────────────────────────────────── -->
+  <div id="view-loading" class="view">
+    <div class="loading-hero">
+      <div class="loader-ring">
+        <svg width="60" height="60" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="26" fill="none" stroke="rgba(249,115,22,0.12)" stroke-width="4"/>
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#f97316" stroke-width="4"
+                  stroke-dasharray="40 124" stroke-linecap="round"
+                  class="spinner-arc"/>
+        </svg>
+        <div class="loader-shield">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+      </div>
+      <p class="loading-title">Analyzing with 6 agents…</p>
+      <div class="agent-steps" id="agent-steps">
+        <div class="agent-step" data-agent="NewsAgent">
+          <span class="step-dot"></span><span>News Agent</span>
+        </div>
+        <div class="agent-step" data-agent="ScienceAgent">
+          <span class="step-dot"></span><span>Science Agent</span>
+        </div>
+        <div class="agent-step" data-agent="ResearchAgent">
+          <span class="step-dot"></span><span>Research Agent</span>
+        </div>
+        <div class="agent-step" data-agent="ScraperAgent">
+          <span class="step-dot"></span><span>Scraper Agent</span>
+        </div>
+        <div class="agent-step" data-agent="SentimentAgent">
+          <span class="step-dot"></span><span>Sentiment Agent</span>
+        </div>
+        <div class="agent-step" data-agent="MediaAgent">
+          <span class="step-dot"></span><span>Media Agent</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RESULT VIEW ───────────────────────────────────────────────────────── -->
+  <div id="view-result" class="view">
+
+    <!-- Verdict banner -->
+    <div id="verdict-banner" class="verdict-banner">
+      <div class="verdict-icon-wrap" id="verdict-icon-wrap">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div class="verdict-text">
+        <div class="verdict-label" id="verdict-label">SUPPORTED</div>
+        <div class="verdict-score" id="verdict-score">Credibility: 82%</div>
+      </div>
+      <button class="re-verify-btn" id="re-verify-btn" title="Re-verify">↺</button>
+    </div>
+
+    <!-- Score ring -->
+    <div class="score-section">
+      <svg class="score-ring" width="100" height="100" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8"/>
+        <circle cx="50" cy="50" r="42" fill="none" stroke-width="8"
+                stroke-linecap="round"
+                id="score-ring-arc"
+                stroke-dasharray="0 264"
+                transform="rotate(-90 50 50)"/>
+      </svg>
+      <div class="score-ring-inner">
+        <span id="score-pct" class="score-pct">0%</span>
+        <span class="score-ring-label">Score</span>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="result-section">
+      <div class="result-label">Summary</div>
+      <p id="result-summary" class="result-text"></p>
+    </div>
+
+    <!-- Agent breakdown -->
+    <div class="result-section">
+      <div class="result-label">Agent Verdicts</div>
+      <div id="agent-breakdown" class="agent-breakdown"></div>
+    </div>
+
+    <!-- Sources -->
+    <div class="result-section" id="sources-section" style="display:none">
+      <div class="result-label">Sources</div>
+      <div id="sources-list" class="sources-list"></div>
+    </div>
+
+    <!-- Query -->
+    <div class="result-section">
+      <div class="result-label">Verified Content</div>
+      <p id="result-query" class="result-query-text"></p>
+    </div>
+
+    <!-- New verify -->
+    <div class="result-actions">
+      <button class="action-btn primary" id="new-verify-btn">Verify Something Else</button>
+    </div>
+  </div>
+
+  <!-- ── HISTORY VIEW ──────────────────────────────────────────────────────── -->
+  <div id="view-history" class="view">
+    <div class="view-heading">
+      <span>Recent Verifications</span>
+      <button class="clear-btn" id="clear-history-btn">Clear</button>
+    </div>
+    <div id="history-list" class="history-list">
+      <p class="empty-msg">No history yet.</p>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-view="idle" id="nav-home">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <span>Verify</span>
+    </button>
+    <button class="nav-btn" data-view="result" id="nav-result">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+      </svg>
+      <span>Result</span>
+    </button>
+    <button class="nav-btn" data-view="history" id="nav-history">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      <span>History</span>
+    </button>
+  </nav>
+
+  <script src="sidebar.js"></script>
+</body>
+</html>
