@@ -1,31 +1,56 @@
 """
 In-house news gathering via RSS/Atom feeds — no API key required.
 Curated list of trusted news and fact-check sources.
+Also supports dynamic Google News RSS queries for event-specific searches.
 """
 import asyncio
 import logging
 import re
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote_plus
 
 logger = logging.getLogger(__name__)
 
 # Trusted news and fact-check RSS/Atom feed URLs (public, no auth)
 RSS_FEED_URLS = [
+    # International tier-1
     "https://feeds.bbci.co.uk/news/rss.xml",
     "https://feeds.reuters.com/reuters/topNews",
     "https://feeds.apnews.com/rss/topnews",
     "https://www.npr.org/rss/rss.php?id=1001",
     "https://www.theguardian.com/world/rss",
+    # Indian general news (tier-2)
     "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
+    "https://timesofindia.indiatimes.com/rss/1221656",      # ToI India section
     "https://www.thehindu.com/news/national/feeder/default.rss",
     "https://indianexpress.com/feed/",
     "https://www.ndtv.com/rss/india-news",
     "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml",
+    "https://www.livemint.com/rss/news",
+    "https://theprint.in/feed/",
+    "https://scroll.in/feed",
+    "https://thewire.in/feed",
+    # Official Indian government news (tier-1 for India policy/law)
+    "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3",  # Press Information Bureau
+    # Fact-checkers
     "https://factcheck.afp.com/rss",
     "https://www.factcheck.org/feed/",
-    "https://www.poynter.org/ifcn-covid-19-misinformation/feed/",
+    "https://www.altnews.in/feed/",
+    "https://www.boomlive.in/feed",
 ]
+
+
+def _google_news_rss_url(query: str) -> str:
+    """
+    Build a dynamic Google News RSS URL for a specific query.
+    Targets Indian English news (hl=en-IN, gl=IN, ceid=IN:en).
+    No API key required — public RSS endpoint.
+    """
+    return (
+        f"https://news.google.com/rss/search"
+        f"?q={quote_plus(query)}"
+        f"&hl=en-IN&gl=IN&ceid=IN:en"
+    )
 
 
 def _parse_feed_sync(url: str) -> list[dict[str, Any]]:
@@ -65,7 +90,13 @@ def _domain_from_url(url: str) -> str:
 
 async def fetch_news_from_rss(query: str, max_items: int = 25) -> list[dict[str, Any]]:
     """
-    Fetch multiple RSS feeds in parallel and filter items by query (keyword match in title/summary).
+    Fetch multiple RSS feeds in parallel — both the static curated list AND a dynamic
+    Google News RSS feed built around the specific query.
+
+    The Google News RSS returns event-specific articles from thousands of sources,
+    so it catches recent government announcements or regional news that the static
+    feeds would miss (e.g. state renaming, new laws, breaking events).
+
     No API key required. Returns list of {url, title, excerpt, published_at}.
     """
     query_lower = query.lower()
@@ -75,7 +106,11 @@ async def fetch_news_from_rss(query: str, max_items: int = 25) -> list[dict[str,
         text = f"{item.get('title', '')} {item.get('excerpt', '')}".lower()
         return any(w in text for w in query_words) if query_words else True
 
-    tasks = [asyncio.to_thread(_parse_feed_sync, url) for url in RSS_FEED_URLS]
+    # Fire static feeds AND dynamic Google News RSS together
+    google_news_url = _google_news_rss_url(query)
+    all_feed_urls = RSS_FEED_URLS + [google_news_url]
+
+    tasks = [asyncio.to_thread(_parse_feed_sync, url) for url in all_feed_urls]
     try:
         results = await asyncio.wait_for(
             asyncio.gather(*tasks, return_exceptions=True),

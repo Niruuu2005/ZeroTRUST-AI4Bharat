@@ -48,11 +48,18 @@ def _tier_from_url(url: str) -> str:
 
 
 async def _llm_verdict(config_key: str, claim: str, context: str, label: str) -> dict:
-    prompt = f"""You are a fact-checker. Analyze if the following {label} sources support or contradict this claim.
+    prompt = f"""You are a real-time fact-checker with access to live web search results.
+The sources below are fetched RIGHT NOW from the internet — they may include recent events
+that occurred after any AI training cutoff. Trust the sources over prior knowledge.
+
+If sources clearly describe the claim as having happened, respond with 'supports'.
+If sources clearly refute it, respond with 'contradicts'.
+If sources are ambiguous or conflicting, respond with 'mixed'.
+Only use 'insufficient' when there are truly zero relevant sources.
 
 Claim: {claim}
 
-Sources:
+{label.capitalize()} sources (live, fetched now):
 {context}
 
 Return ONLY valid JSON (no markdown, no explanation):
@@ -104,17 +111,41 @@ class ResearchAgent(BaseAgent):
             return []
 
     async def _wikipedia_search(self, query: str) -> list:
+        """Search Wikipedia via the proper search API, not a direct title lookup."""
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                r = await client.get("https://en.wikipedia.org/api/rest_v1/page/summary/" +
-                    query.split()[0], headers={"User-Agent": "ZeroTRUST/1.0"})
-                if r.status_code == 200:
-                    data = r.json()
-                    return [self._make_source(
-                        data.get('content_urls', {}).get('desktop', {}).get('page', ''),
-                        data.get('title', ''), data.get('extract', '')[:300],
-                        'tier_2', 'neutral', 'encyclopedia'
-                    )]
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                # Step 1: find matching article titles
+                search_r = await client.get(
+                    "https://en.wikipedia.org/w/api.php",
+                    params={
+                        "action": "query",
+                        "list": "search",
+                        "srsearch": query[:150],
+                        "format": "json",
+                        "srlimit": 3,
+                        "utf8": 1,
+                    },
+                    headers={"User-Agent": "ZeroTRUST/1.0"},
+                )
+                hits = search_r.json().get("query", {}).get("search", [])
+                sources = []
+                for hit in hits[:2]:
+                    title = hit.get("title", "")
+                    if not title:
+                        continue
+                    # Step 2: fetch the summary for the matched article
+                    sum_r = await client.get(
+                        f"https://en.wikipedia.org/api/rest_v1/page/summary/{title}",
+                        headers={"User-Agent": "ZeroTRUST/1.0"},
+                    )
+                    if sum_r.status_code == 200:
+                        data = sum_r.json()
+                        sources.append(self._make_source(
+                            data.get('content_urls', {}).get('desktop', {}).get('page', ''),
+                            data.get('title', ''), data.get('extract', '')[:300],
+                            'tier_2', 'neutral', 'encyclopedia'
+                        ))
+                return sources
         except Exception:
             pass
         return []
@@ -127,11 +158,15 @@ class NewsAgent(BaseAgent):
     """📰 RSS feeds (trusted sources) + DuckDuckGo news — in-house, no API keys."""
 
     async def investigate(self, claim: str, analysis: dict) -> dict:
-        entities = analysis.get('entities', [])
-        q = ' '.join(entities[:3]) if entities else claim[:100]
+        # Use main_assertion as primary query to preserve event context (e.g. 'renamed', 'banned').
+        # Falling back to entity list only loses the verb/action that distinguishes the event.
+        main_q = analysis.get('main_assertion', claim)[:200]
+        entity_q = ' '.join(analysis.get('entities', [])[:4]) or claim[:100]
+
         results = await asyncio.gather(
-            fetch_news_from_rss(q, max_items=20),
-            self._duckduckgo_news(q),
+            fetch_news_from_rss(main_q, max_items=20),
+            self._duckduckgo_news(main_q),
+            self._duckduckgo_news(entity_q),
             return_exceptions=True
         )
         sources = []
@@ -143,6 +178,9 @@ class NewsAgent(BaseAgent):
                     if key and key not in seen:
                         seen.add(key)
                         sources.append(self._normalize_news_source(s))
+
+        # Sort by recency so the LLM context leads with newest articles
+        sources.sort(key=lambda s: s.get('published_at', ''), reverse=True)
         sources = sources[:20]
 
         if not sources:
